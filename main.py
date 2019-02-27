@@ -49,11 +49,12 @@ def getlimitorderpair(orderbook, side):
     price = 0
     qty = 0
     fees = (Afees * orderbook.bid1.price) + (Bfess * orderbook.bid1.price)
+    standarddev = getstandarddev(exchangeA, exchangeB, 'Min', 60)
     if(side == "sell"):
-        price = orderbook.bid1.price * (minRate + 1) + fees * 2
+        price = orderbook.bid1.price * (minRate + 1) + fees * 2 + standarddev
         qty = orderbook.bid1.qty * qtyRate
     else
-        price = orderbook.ask1.price * (1 - minRate) - fees * 2
+        price = orderbook.ask1.price * (1 - minRate) - fees * 2 + standarddev
         qty = orderbook.ask1.qty * qtyRate
     return price, qty
 
@@ -82,7 +83,7 @@ def closeposition(orderbook):
     price, qty = getlimitorderpair(orderbook, side)
     if(qty > position.qty)
         qty = position.qty
-    modifylimitorder(exchangeA,symbol,side,qty,price)
+    modifylimitorder(exchangeA, symbol, side, qty, price)
 
 
 def modifylimitorder(exchangeName, symbol, side, qty, price):
@@ -93,7 +94,7 @@ def openmarketorder(exchangeName, symbol, side, qty):
     NotImplementedError("openmarketorder")
 
 
-def getstandarddev():
+def getstandarddev(period, size):
     NotImplementedError("getstandarddev")
 
 
@@ -101,5 +102,6 @@ def run():
     subscribeorderbook(exchangeB, symbol, orderbookchangehandler)
     subscribeposition(exchangeB, symbol, positionchangehandler)
     subscribeorderchange(exchangeA, symbol, orderchangehandler)
+
 
 run()
