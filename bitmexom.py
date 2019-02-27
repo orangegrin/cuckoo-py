@@ -1,4 +1,3 @@
-
 from market_maker.market_maker import OrderManager
 from market_maker.settings import settings
 from market_maker.utils import log, constants, errors, math

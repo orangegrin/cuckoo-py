@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+from bitmexom import bitmexom
+import asyncio
+
 exchangeA = "BitMex"
 exchangeB = "HBHM"
 symbol = "BTCUSD"
@@ -29,17 +32,17 @@ def orderbookchangehandler(orderbook):
         openposition(orderbook, "sell")
         openposition(orderbook, "buy")
     else:
-        closeposition(orderbook, "sell")
-        closeposition(orderbook, "buy")
+        closeposition(orderbook)
+        closeposition(orderbook)
 
 
 def orderchangehandler(order):
     if(order.ordStatus == "Filled"):
-        side = order.side == "buy" ? "sell": "buy"
+        side = "sell" if order.side == "buy" else "buy"
         openmarketorder(exchangeB, symbol, side, order.qty)
 
 
-def positionchangehandler(position)
+def positionchangehandler(position):
     market["position"] = position
 
 # =====================================================
@@ -53,7 +56,7 @@ def getlimitorderpair(orderbook, side):
     if(side == "sell"):
         price = orderbook.bid1.price * (minRate + 1) + fees * 2 + standarddev
         qty = orderbook.bid1.qty * qtyRate
-    else
+    else:
         price = orderbook.ask1.price * (1 - minRate) - fees * 2 + standarddev
         qty = orderbook.ask1.qty * qtyRate
     return price, qty
@@ -79,9 +82,9 @@ def openposition(orderbook, side):
 
 def closeposition(orderbook):
     position = market["position"]
-    side = position.execQty > 0 ? "sell": "buy"
+    side = "sell" if position.execQty > 0 else "buy"
     price, qty = getlimitorderpair(orderbook, side)
-    if(qty > position.qty)
+    if(qty > position.qty):
         qty = position.qty
     modifylimitorder(exchangeA, symbol, side, qty, price)
 
@@ -98,10 +101,7 @@ def getstandarddev(period, size):
     NotImplementedError("getstandarddev")
 
 
-def run():
+async def run():
     subscribeorderbook(exchangeB, symbol, orderbookchangehandler)
     subscribeposition(exchangeB, symbol, positionchangehandler)
     subscribeorderchange(exchangeA, symbol, orderchangehandler)
-
-
-run()
