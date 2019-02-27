@@ -52,7 +52,7 @@ def getlimitorderpair(orderbook, side):
     price = 0
     qty = 0
     fees = (Afees * orderbook.bid1.price) + (Bfess * orderbook.bid1.price)
-    standarddev = getstandarddev(exchangeA, exchangeB, 'Min', 60)
+    standarddev = getstandarddev('Min', 60)
     if(side == "sell"):
         price = orderbook.bid1.price * (minRate + 1) + fees * 2 + standarddev
         qty = orderbook.bid1.qty * qtyRate
