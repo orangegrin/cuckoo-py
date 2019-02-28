@@ -360,6 +360,7 @@ class OrderManager:
         # If there's an open one, we might be able to amend it to fit what we want.
         for order in existing_orders:
             try:
+                desired_order=None
                 if order['side'] == 'Buy' and current_position_qty < 0:
                     desired_order = buy_orders[buys_matched]
                     buys_matched += 1
@@ -368,22 +369,22 @@ class OrderManager:
                     sells_matched += 1
                 
                 # Found an existing order. Do we need to amend it?
-                if desired_order['orderQty'] != order['leavesQty'] or desired_order['price'] != order['price']:
+                if desired_order and (desired_order['orderQty'] != order['leavesQty'] or desired_order['price'] != order['price']):
                     # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
                     to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'],
                                      'price': desired_order['price'], 'side': order['side']})
             except IndexError:
                 # Will throw if there isn't a desired order to match. In that case, cancel it.
                 to_cancel.append(order)
+        if len(existing_orders)!=2:
+            while buys_matched < len(buy_orders) and (current_position_qty == 0 or  (len(existing_orders)==0 and len(to_create)==0)):
+                to_create.append(buy_orders[buys_matched])
+                buys_matched += 1
 
-        while buys_matched < len(buy_orders) and (current_position_qty == 0 or  (len(existing_orders)==0 and len(to_create)==0)):
-            to_create.append(buy_orders[buys_matched])
-            buys_matched += 1
-
-        while sells_matched < len(sell_orders) and (current_position_qty == 0  or (len(existing_orders)==0 and len(to_create)==0)):
-            to_create.append(sell_orders[sells_matched])
-            sells_matched += 1
-
+            while sells_matched < len(sell_orders) and (current_position_qty == 0  or (len(existing_orders)==0 and len(to_create)==0)):
+                to_create.append(sell_orders[sells_matched])
+                sells_matched += 1
+        
         if len(to_amend) > 0:
             for amended_order in reversed(to_amend):
                 reference_order = [o for o in existing_orders if o['orderID'] == amended_order['orderID']][0]
