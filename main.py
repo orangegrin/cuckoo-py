@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from bitmexom import bitmexom
 import asyncio
+import ExchangeService as es
 
 exchangeA = "BitMex"
 exchangeB = "HBHM"
@@ -12,20 +13,9 @@ Bfess = 0.00025
 qtyRate = 0.3
 market = {}
 
-
-def subscribeorderbook(exchangeName, symbol, callback):
-    NotImplementedError("subscribeorderbook")
-
-
-def subscribeposition(exchangeName, symbol, callback):
-    NotImplementedError("subscribeorderbook")
-
-
-def subscribeorderchange(exchangeName, symbol, callback):
-    NotImplementedError("subscribeorderbook")
-
-
 # ====================handler===========================
+
+
 def orderbookchangehandler(orderbook):
     position = market["position"]
     if(position.qty == 0):
@@ -39,7 +29,7 @@ def orderbookchangehandler(orderbook):
 def orderchangehandler(order):
     if(order.ordStatus == "Filled"):
         side = "sell" if order.side == "buy" else "buy"
-        openmarketorder(exchangeB, symbol, side, order.qty)
+        es.openmarketorder(exchangeB, symbol, side, order.qty)
 
 
 def positionchangehandler(position):
@@ -52,7 +42,7 @@ def getlimitorderpair(orderbook, side):
     price = 0
     qty = 0
     fees = (Afees * orderbook.bid1.price) + (Bfess * orderbook.bid1.price)
-    standarddev = getstandarddev('Min', 60)
+    standarddev = es.getstandarddev(exchangeA, exchangeB, 'Min', 60)
     if(side == "sell"):
         price = orderbook.bid1.price * (minRate + 1) + fees * 2 + standarddev
         qty = orderbook.bid1.qty * qtyRate
@@ -77,7 +67,7 @@ def openposition(orderbook, side):
     price, qty = getlimitorderpair(orderbook, side)
     if(qty > maxQty):
         qty = maxQty
-    modifylimitorder(exchangeA, symbol, side, qty, price)
+    es.modifylimitorder(exchangeA, symbol, side, qty, price)
 
 
 def closeposition(orderbook):
@@ -86,22 +76,10 @@ def closeposition(orderbook):
     price, qty = getlimitorderpair(orderbook, side)
     if(qty > position.qty):
         qty = position.qty
-    modifylimitorder(exchangeA, symbol, side, qty, price)
-
-
-def modifylimitorder(exchangeName, symbol, side, qty, price):
-    NotImplementedError("openlimitorder")
-
-
-def openmarketorder(exchangeName, symbol, side, qty):
-    NotImplementedError("openmarketorder")
-
-
-def getstandarddev(period, size):
-    NotImplementedError("getstandarddev")
+    es.modifylimitorder(exchangeA, symbol, side, qty, price)
 
 
 async def run():
-    subscribeorderbook(exchangeB, symbol, orderbookchangehandler)
-    subscribeposition(exchangeB, symbol, positionchangehandler)
-    subscribeorderchange(exchangeA, symbol, orderchangehandler)
+    es.subscribeorderbook(exchangeB, symbol, orderbookchangehandler)
+    es.subscribeposition(exchangeB, symbol, positionchangehandler)
+    es.subscribeorderchange(exchangeA, symbol, orderchangehandler)
