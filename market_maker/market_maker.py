@@ -208,7 +208,6 @@ class OrderManager:
 
         logger.info("Using symbol %s." % self.exchange.symbol)
 
-    def init(self):
         if settings.DRY_RUN:
             logger.info("Initializing dry run. Orders printed below represent what would be posted to BitMEX.")
         else:
@@ -227,9 +226,6 @@ class OrderManager:
 
         # Create orders and converge.
         self.place_orders()
-
-        if settings.DRY_RUN:
-            sys.exit()
 
     def print_status(self):
         """Print the current MM status."""
@@ -257,8 +253,9 @@ class OrderManager:
         # Set up our buy & sell positions as the smallest possible unit above and below the current spread
         # and we'll work out from there. That way we always have the best price but we don't kill wide
         # and potentially profitable spreads.
-        self.start_position_buy = ticker["buy"] + self.instrument['tickSize']
-        self.start_position_sell = ticker["sell"] - self.instrument['tickSize']
+        # logger.error(self.instrument)
+        self.start_position_buy = ticker["buy"] #+ self.instrument['tickSize']
+        self.start_position_sell = ticker["sell"] #- self.instrument['tickSize']
 
         # If we're maintaining spreads and we already have orders in place,
         # make sure they're not ours. If they are, we need to adjust, otherwise we'll
@@ -270,9 +267,9 @@ class OrderManager:
                 self.start_position_sell = ticker["sell"]
 
         # Back off if our spread is too small.
-        if self.start_position_buy * (1.00 + settings.MIN_SPREAD) > self.start_position_sell:
-            self.start_position_buy *= (1.00 - (settings.MIN_SPREAD / 2))
-            self.start_position_sell *= (1.00 + (settings.MIN_SPREAD / 2))
+        # if self.start_position_buy * (1.00 + settings.MIN_SPREAD) > self.start_position_sell:
+        #     self.start_position_buy *= (1.00 - (settings.MIN_SPREAD / 2))
+        #     self.start_position_sell *= (1.00 + (settings.MIN_SPREAD / 2))
 
         # Midpoint, used for simpler order placement.
         self.start_position_mid = ticker["mid"]
@@ -288,6 +285,10 @@ class OrderManager:
     def get_price_offset(self, index):
         """Given an index (1, -1, 2, -2, etc.) return the price for that side of the book.
            Negative is a buy, positive is a sell."""
+
+        start_position = self.start_position_buy if index < 0 else self.start_position_sell
+        return math.toNearest(start_position , self.instrument['tickSize'])
+
         # Maintain existing spreads for max profit
         if settings.MAINTAIN_SPREADS:
             start_position = self.start_position_buy if index < 0 else self.start_position_sell
@@ -353,33 +354,33 @@ class OrderManager:
         sells_matched = 0
         existing_orders = self.exchange.get_orders()
 
+        position = self.exchange.get_position()
+        current_position_qty = position['currentQty']
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
         for order in existing_orders:
             try:
-                if order['side'] == 'Buy':
+                if order['side'] == 'Buy' and current_position_qty < 0:
                     desired_order = buy_orders[buys_matched]
                     buys_matched += 1
-                else:
+                elif order['side'] == 'Sell' and current_position_qty > 0:
                     desired_order = sell_orders[sells_matched]
                     sells_matched += 1
-
+                
                 # Found an existing order. Do we need to amend it?
-                if desired_order['orderQty'] != order['leavesQty'] or (
-                        # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
-                        desired_order['price'] != order['price'] and
-                        abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):
-                    to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
+                if desired_order['orderQty'] != order['leavesQty'] or desired_order['price'] != order['price']:
+                    # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
+                    to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'],
                                      'price': desired_order['price'], 'side': order['side']})
             except IndexError:
                 # Will throw if there isn't a desired order to match. In that case, cancel it.
                 to_cancel.append(order)
 
-        while buys_matched < len(buy_orders):
+        while buys_matched < len(buy_orders) and (current_position_qty == 0 or  (len(existing_orders)==0 and len(to_create)==0)):
             to_create.append(buy_orders[buys_matched])
             buys_matched += 1
 
-        while sells_matched < len(sell_orders):
+        while sells_matched < len(sell_orders) and (current_position_qty == 0  or (len(existing_orders)==0 and len(to_create)==0)):
             to_create.append(sell_orders[sells_matched])
             sells_matched += 1
 
@@ -426,14 +427,14 @@ class OrderManager:
     ###
 
     def short_position_limit_exceeded(self):
-        "Returns True if the short position limit is exceeded"
+        """Returns True if the short position limit is exceeded"""
         if not settings.CHECK_POSITION_LIMITS:
             return False
         position = self.exchange.get_delta()
         return position <= settings.MIN_POSITION
 
     def long_position_limit_exceeded(self):
-        "Returns True if the long position limit is exceeded"
+        """Returns True if the long position limit is exceeded"""
         if not settings.CHECK_POSITION_LIMITS:
             return False
         position = self.exchange.get_delta()
@@ -463,7 +464,7 @@ class OrderManager:
             logger.error("Sanity check failed, exchange data is inconsistent")
             self.exit()
 
-        # Messanging if the position limits are reached
+        # Messaging if the position limits are reached
         if self.long_position_limit_exceeded():
             logger.info("Long delta limit exceeded")
             logger.info("Current Position: %.f, Maximum Position: %.f" %
@@ -547,7 +548,6 @@ def run():
     om = OrderManager()
     # Try/except just keeps ctrl-c from printing an ugly stacktrace
     try:
-        om.init()
         om.run_loop()
     except (KeyboardInterrupt, SystemExit):
         sys.exit()

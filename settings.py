@@ -10,8 +10,12 @@ BASE_URL = "https://testnet.bitmex.com/api/v1/"
 # BASE_URL = "https://www.bitmex.com/api/v1/" # Once you're ready, uncomment this.
 
 # The BitMEX API requires permanent API keys. Go to https://testnet.bitmex.com/api/apiKeys to fill these out.
-API_KEY = "pyqbgv3XvT_k6y-cJC9KN6GY"
-API_SECRET = "Eo5NA_WvrlcTr4PcQx_bXUfIPu9mx_Kl5yUZcaHXRipWkjhk"
+# The BitMEX API requires permanent API keys. Go to https://testnet.bitmex.com/app/apiKeys to fill these out.
+API_KEY = "P8Q8yeDcb0qK-2ubQ2RHM6XM"
+API_SECRET = "isr6yST6iRD6SwRJPWSbldED44x8yvoSuhP2UPxkVE5US_ny"
+
+
+################################
 
 
 ########################################################################################################################
@@ -27,7 +31,7 @@ SYMBOL = "XBTUSD"
 ########################################################################################################################
 
 # How many pairs of buy/sell orders to keep open
-ORDER_PAIRS = 6
+ORDER_PAIRS = 1
 
 # ORDER_START_SIZE will be the number of contracts submitted on level 1
 # Number of contracts from level 1 to ORDER_PAIRS - 1 will follow the function
@@ -36,7 +40,7 @@ ORDER_START_SIZE = 100
 ORDER_STEP_SIZE = 100
 
 # Distance between successive orders, as a percentage (example: 0.005 for 0.5%)
-INTERVAL = 0.005
+INTERVAL = 0.00
 
 # Minimum spread to maintain, in percent, between asks & bids
 MIN_SPREAD = 0.01
@@ -55,8 +59,7 @@ MAINTAIN_SPREADS = True
 # it will be resubmitted.
 #
 # 0.01 == 1%
-RELIST_INTERVAL = 0.01
-
+RELIST_INTERVAL = 0.0
 
 ########################################################################################################################
 # Trading Behavior
@@ -85,7 +88,7 @@ DRY_RUN = False
 # How often to re-check and replace orders.
 # Generally, it's safe to make this short because we're fetching from websockets. But if too many
 # order amend/replaces are done, you may hit a ratelimit. If so, email BitMEX if you feel you need a higher limit.
-LOOP_INTERVAL = 5
+LOOP_INTERVAL = 1
 
 # Wait times between orders / errors
 API_REST_INTERVAL = 1
