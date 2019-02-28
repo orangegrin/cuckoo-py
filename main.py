@@ -23,7 +23,6 @@ def orderbookchangehandler(orderbook):
         openposition(orderbook, "buy")
     else:
         closeposition(orderbook)
-        closeposition(orderbook)
 
 
 def orderchangehandler(order):
@@ -61,6 +60,7 @@ def getclosepositionorderpair(orderbook, side):
     else:
         price = orderbook.ask1.price
         qty = orderbook.ask1.qty * qtyRate
+    return price, qty
 
 
 def openposition(orderbook, side):
@@ -73,7 +73,7 @@ def openposition(orderbook, side):
 def closeposition(orderbook):
     position = market["position"]
     side = "sell" if position.execQty > 0 else "buy"
-    price, qty = getlimitorderpair(orderbook, side)
+    price, qty = getclosepositionorderpair(orderbook, side)
     if(qty > position.qty):
         qty = position.qty
     es.modifylimitorder(exchangeA, symbol, side, qty, price)
@@ -81,5 +81,5 @@ def closeposition(orderbook):
 
 async def run():
     es.subscribeorderbook(exchangeB, symbol, orderbookchangehandler)
-    es.subscribeposition(exchangeB, symbol, positionchangehandler)
+    es.subscribeposition(exchangeA, symbol, positionchangehandler)
     es.subscribeorderchange(exchangeA, symbol, orderchangehandler)
