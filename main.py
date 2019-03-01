@@ -80,6 +80,6 @@ def closeposition(orderbook):
 
 
 async def run():
-    es.subscribeorderbook(exchangeB, symbol, orderbookchangehandler)
+    es.subscribeorderbook(exchangeB, symbol, 0.5, 200 orderbookchangehandler)
     es.subscribeposition(exchangeA, symbol, positionchangehandler)
     es.subscribeorderchange(exchangeA, symbol, orderchangehandler)

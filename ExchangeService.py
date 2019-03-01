@@ -4,7 +4,7 @@ def initexchange(exchangeName, symbol):
     NotImplementedError("initexchange")
 
 
-def subscribeorderbook(exchangeName, symbol, callback):
+def subscribeorderbook(exchangeName, symbol, depth, size, callback):
     NotImplementedError("subscribeorderbook")
 
 
@@ -26,4 +26,3 @@ def openmarketorder(exchangeName, symbol, side, qty):
 
 def getstandarddev(exchangeNameA, exchangeNameB, period, size):
     NotImplementedError("getstandarddev")
-
