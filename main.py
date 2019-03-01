@@ -23,7 +23,6 @@ def orderbookchangehandler(orderbook):
         openposition(orderbook, "buy")
     else:
         closeposition(orderbook)
-        closeposition(orderbook)
 
 
 def orderchangehandler(order):
@@ -81,5 +80,5 @@ def closeposition(orderbook):
 
 async def run():
     es.subscribeorderbook(exchangeB, symbol, orderbookchangehandler)
-    es.subscribeposition(exchangeB, symbol, positionchangehandler)
+    es.subscribeposition(exchangeA, symbol, positionchangehandler)
     es.subscribeorderchange(exchangeA, symbol, orderchangehandler)
