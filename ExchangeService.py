@@ -37,7 +37,7 @@ class ExchangeService:
     def getstandarddev(self, exchangeNameA, exchangeNameB, period, size):
         NotImplementedError("getstandarddev")
 
-    def publish(self, exchangeName,channel,msg):
+    def publish(self,channel,msg):
         NotImplementedError("getstandarddev")
 
 
@@ -54,4 +54,3 @@ class ExchangeService:
             data = await ch.get_json()
             ch_name = ch.name.decode('utf-8')
             callback(ch_name,data)
-            # callback(ch_name,data)
