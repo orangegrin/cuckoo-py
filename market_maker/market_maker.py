@@ -512,7 +512,7 @@ class OrderManager:
 
             self.sanity_check()  # Ensures health of mm - several cut-out points here
             self.print_status()  # Print skew, delta, etc
-            self.place_orders()  # Creates desired orders and converges to existing orders
+            # self.place_orders()  # Creates desired orders and converges to existing orders
 
     def restart(self):
         logger.info("Restarting the market maker...")

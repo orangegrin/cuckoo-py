@@ -43,10 +43,14 @@ class BitMEX(object):
         self.session.headers.update({'accept': 'application/json'})
 
         # Create websocket for streaming data
-        self.ws = BitMEXWebsocket()
+        self.ws = BitMEXWebsocket(logger=self.logger)
         self.ws.connect(base_url, symbol, shouldAuth=shouldWSAuth)
 
         self.timeout = timeout
+
+    def set_websocket_callback(self,sub_callback_dic):
+        self.ws.set_sub_callback(sub_callback_dic)
+        pass    
 
     def __del__(self):
         self.exit()
@@ -173,7 +177,7 @@ class BitMEX(object):
         for order in orders:
             order['clOrdID'] = self.orderIDPrefix + base64.b64encode(uuid.uuid4().bytes).decode('utf8').rstrip('=\n')
             order['symbol'] = self.symbol
-            if self.postOnly and order['ordType']=='Limit':
+            if self.postOnly and order.get('ordType',None)=='Limit' and order.get('execInst',None) :
                 order['execInst'] = 'ParticipateDoNotInitiate'
         return self._curl_bitmex(path='order/bulk', postdict={'orders': orders}, verb='POST')
 
