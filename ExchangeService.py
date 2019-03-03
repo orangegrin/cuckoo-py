@@ -1,29 +1,24 @@
-
-
-def initexchange(exchangeName, symbol):
-    NotImplementedError("initexchange")
-
-
-def subscribeorderbook(exchangeName, symbol, callback):
+# 订阅交订单数据
+def SubscribeOrderbook(exchangeName, symbol, depth, size, callback):
     NotImplementedError("subscribeorderbook")
 
-
-def subscribeposition(exchangeName, symbol, callback):
+# 订阅仓位数据
+def SubscribePosition(exchangeName, symbol, callback):
     NotImplementedError("subscribeorderbook")
 
-
-def subscribeorderchange(exchangeName, symbol, callback):
+# 监听订单状态
+def SubscribeOrderChange(exchangeName, symbol, callback):
     NotImplementedError("subscribeorderbook")
 
-
-def modifylimitorder(exchangeName, symbol, side, qty, price):
+# 打开或/修改限价订单
+def ModifyLimitOrder(exchangeName, symbol, side, qty, price):
     NotImplementedError("openlimitorder")
 
-
-def openmarketorder(exchangeName, symbol, side, qty):
+# 打开市价订单
+def OpenMarketOrder(exchangeName, symbol, side, qty):
     NotImplementedError("openmarketorder")
 
-
-def getstandarddev(exchangeNameA, exchangeNameB, period, size):
-    NotImplementedError("getstandarddev")
-
+# 获取平台标准价差
+def GetStandardDev(exchangeNameA, exchangeNameB,symbol, period, size):
+    return 0
+    # NotImplementedError("getstandarddev")
