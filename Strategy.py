@@ -18,7 +18,7 @@ market = {}
 class Strategy(object):
     def __init__(self, es):
         self.es = es
-        
+
     def OrderbookChangeHandler(self,orderbook):
         position = market["position"]
         # 如果当前交易所有没有仓位
@@ -50,7 +50,7 @@ class Strategy(object):
         price = 0
         qty = 0
         fees = (Afees * orderbook.bid1.price) + (Bfess * orderbook.bid1.price)
-        standarddev = self.self.es.GetStandardDev(exchangeA,exchangeB,symbol,'Min',60)
+        standarddev = self.es.GetStandardDev(exchangeA,exchangeB,symbol,'Min',60)
         if(side == "sell"):
             price = orderbook.bid1.price * (minRate + 1) + fees * 2 + standarddev
             qty = orderbook.bid1.qty * qtyRate

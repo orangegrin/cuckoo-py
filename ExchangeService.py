@@ -36,25 +36,22 @@ class ExchangeService:
     # 获取平台标准价差
     def GetStandardDev(exchangeNameA, exchangeNameB,symbol, period, size):
         return 0
-        # NotImplementedError("getstandarddev")
-
-        def getstandarddev(self, exchangeNameA, exchangeNameB, period, size):
-            NotImplementedError("getstandarddev")
-
-        def publish(self,channel,msg):
-            NotImplementedError("getstandarddev")
+        # NotImplementedError("getstandarddev"
+        
+    def publish(self,channel,msg):
+        NotImplementedError("getstandarddev")
 
 
-        async def initexchange(self):
-            self.redis = await aioredis.create_redis('redis://localhost')
+    async def initexchange(self):
+        self.redis = await aioredis.create_redis('redis://localhost')
 
 
-        async def subscribe(self,channel,callback):
-            res = await self.redis.subscribe(channel)
-            await asyncio.ensure_future(self.reader(res[0],callback))
+    async def subscribe(self,channel,callback):
+        res = await self.redis.subscribe(channel)
+        await asyncio.ensure_future(self.reader(res[0],callback))
 
-        async def reader(self, ch,callback):
-            while (await ch.wait_message()):
-                data = await ch.get_json()
-                ch_name = ch.name.decode('utf-8')
-                callback(ch_name,data)
+    async def reader(self, ch,callback):
+        while (await ch.wait_message()):
+            data = await ch.get_json()
+            ch_name = ch.name.decode('utf-8')
+            callback(ch_name,data)
