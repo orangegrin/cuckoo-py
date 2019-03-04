@@ -2,3 +2,6 @@
 __pycache__
 *.pyc
 sftp-config.json
+/.vs/VSWorkspaceState.json
+/.vs/cuckoo-py/v15/.suo
+/.vs/slnx.sqlite
