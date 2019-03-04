@@ -8,13 +8,6 @@ class ExchangeService:
         channel = exchangeName+".orderbook"+"."+symbol
         await self.subscribe(channel, callback=strategy_callback)
 
-    def onSubscribeOrderbook(self, channel, data):
-        print("on callback")
-        print(channel)
-        print(data)
-        orderbook = [{1, 2}]
-        self.orderbookchangehandler(orderbook)
-
     def subscribeposition(self, exchangeName, symbol, callback):
         NotImplementedError("subscribeorderbook")
 
@@ -46,4 +39,4 @@ class ExchangeService:
         while (await ch.wait_message()):
             data = await ch.get_json()
             ch_name = ch.name.decode('utf-8')
-            callback(ch_name, data)
+            callback(data)
