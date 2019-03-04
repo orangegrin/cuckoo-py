@@ -17,7 +17,7 @@ if __name__ == '__main__':
     # 订阅 Market Depth 数据
     tradeStr_marketDepth="""
     {
-        "sub": "market.BTC_CW.depth.step10", "id": "id1"
+        "sub": "market.BTC_CW.depth.step5", "id": "id1"
     }
     """
 
@@ -36,17 +36,17 @@ if __name__ == '__main__':
             
         else:
             try:
-                if trade_id == result['data']['id']:
-                    print('重复的id')
-                    break
-                else:
-                    trade_id = result['data']['id']
+                data = json.loads(result)
+                if('tick' in data):
+                    if trade_id == data['tick']['id']:
+                        continue
+                    else:
+                        print(data)
+                        trade_id = data['tick']['id']
             except Exception:
                 pass
-            data = json.loads(result)
-            if('tick' in data):
-                price = data['tick']['bids'][0][0]
-                print(price)
+
+                # print(price)
                 # price = 0
                 # qty = 0
                 # for i in range(0,5):
