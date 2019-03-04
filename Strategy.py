@@ -25,7 +25,7 @@ class Strategy(object):
     def OrderbookChangeHandler(self, orderbook):
         position = market["position"]
         # 如果当前交易所有没有仓位
-        if(position.qty == 0):
+        if(position != None and position.qty == 0):
             # 双向开仓
             self.OpenPosition(orderbook, "sell")
             self.OpenPosition(orderbook, "buy")
