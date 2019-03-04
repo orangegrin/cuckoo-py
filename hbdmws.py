@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     config = configparser.ConfigParser()
     config.read('config.ini')
-    RedisLib = RedisLib()
+    rsLib = RedisLib()
     exchange = "huobi"
     symbol = "BTC_USD"
 
@@ -46,26 +46,28 @@ if __name__ == '__main__':
             ws.send(tradeStr_marketDepth)
             
         else:
-            try:
-                data = json.loads(result)
-                if('tick' in data):
-                    if trade_id == data['tick']['id']:
-                        continue
-                    else:
-                        trade_id = data['tick']['id']
-                        channel = RedisLib.setChannelName("OrderBookChange."+exchange+"."+symbol)
-                        
-                        pubData = {
-                            "Exchange": exchange,
-                            "SequenceId":  data["tick"]["mrid"],
-                            "MarketSymbol": symbol,
-                            "LastUpdatedUtc": data["ts"],
-                            "Asks": data["tick"]["asks"],
-                            "Bids": data["tick"]["bids"]
-                        }
-                        pubdata_json = json.dumps(pubData)
+            # try:
+            data = json.loads(result)
+            if('tick' in data):
+                if trade_id == data['tick']['id']:
+                    continue
+                else:
+                    trade_id = data['tick']['id']
+                    channel = rsLib.setChannelName("OrderBookChange."+exchange+"."+symbol)
+                    bids = rsLib.ResampleOrderbooks(data['tick']['bids'],0.5,False)
+                    asks = rsLib.ResampleOrderbooks(data['tick']['asks'],0.5,True)
 
-                        res = redis_conn.publish(channel, pubdata_json)
+                    pubData = {
+                        "Exchange": exchange,
+                        "SequenceId":  data["tick"]["mrid"],
+                        "MarketSymbol": symbol,
+                        "LastUpdatedUtc": data["ts"],
+                        "Asks": asks,
+                        "Bids": bids
+                    }
+                    pubdata_json = json.dumps(pubData)
+                    print(pubdata_json)
+                    res = redis_conn.publish(channel, pubdata_json)
 
-            except Exception as e:
-                print(str(e))
+            # except Exception as e:
+            #     print(str(e))
