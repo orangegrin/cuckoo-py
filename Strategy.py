@@ -6,7 +6,7 @@ from ExchangeService import ExchangeService
 
 exchangeA = "bitmex"
 exchangeB = "huobi"
-symbol = "btc_usd"
+symbol = "BTC_USD"
 maxQty = 200
 minRate = 0.003
 Afees = -0.00025
@@ -23,15 +23,16 @@ class Strategy(object):
         self.es = es
 
     def OrderbookChangeHandler(self, orderbook):
-        position = market["position"]
-        # 如果当前交易所有没有仓位
-        if(position != None and position.qty == 0):
-            # 双向开仓
-            self.OpenPosition(orderbook, "sell")
-            self.OpenPosition(orderbook, "buy")
-        else:
-            # 先平仓
-            self.ClosePosition(orderbook)
+        print(orderbook)
+        # position = market["position"]
+        # # 如果当前交易所有没有仓位
+        # if(position != None and position.qty == 0):
+        #     # 双向开仓
+        #     self.OpenPosition(orderbook, "sell")
+        #     self.OpenPosition(orderbook, "buy")
+        # else:
+        #     # 先平仓
+        #     self.ClosePosition(orderbook)
 
     def OrderChangeHandler(self, order):
         # 如果限价交易订单完成，则在另外一个交易所反向市价套保

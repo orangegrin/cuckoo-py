@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
-
+# import websockets
 from websocket import create_connection
 import gzip
 import time
 import json
+import redis
+import configparser
+from RedisLib import RedisLib
 
 if __name__ == '__main__':
     while(1):
@@ -20,6 +23,14 @@ if __name__ == '__main__':
         "sub": "market.BTC_CW.depth.step5", "id": "id1"
     }
     """
+
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    RedisLib = RedisLib()
+    exchange = "huobi"
+    symbol = "BTC_USD"
+
+    redis_conn = redis.Redis(host='localhost', port=6379)
 
     ws.send(tradeStr_marketDepth)
     trade_id = ''
@@ -41,17 +52,20 @@ if __name__ == '__main__':
                     if trade_id == data['tick']['id']:
                         continue
                     else:
-                        print(data)
                         trade_id = data['tick']['id']
-            except Exception:
-                pass
+                        channel = RedisLib.setChannelName("OrderBookChange."+exchange+"."+symbol)
+                        
+                        pubData = {
+                            "Exchange": exchange,
+                            "SequenceId":  data["tick"]["mrid"],
+                            "MarketSymbol": symbol,
+                            "LastUpdatedUtc": data["ts"],
+                            "Asks": data["tick"]["asks"],
+                            "Bids": data["tick"]["bids"]
+                        }
+                        pubdata_json = json.dumps(pubData)
 
-                # print(price)
-                # price = 0
-                # qty = 0
-                # for i in range(0,5):
-                #     orderprice = data['tick']['bids'][i]
-                #     price = orderprice[0]
-                #     qty += orderprice[1]
-                # print('{},{}'.format(price, qty))
-                # print(data['tick']['bids'])
+                        res = redis_conn.publish(channel, pubdata_json)
+
+            except Exception as e:
+                print(str(e))

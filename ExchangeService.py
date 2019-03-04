@@ -1,11 +1,15 @@
 import asyncio
 import aioredis
-
+from RedisLib import RedisLib
 
 class ExchangeService:
+    def __init__(self):
+        self.redislib = RedisLib()
 
     async def subscribeorderbook(self, exchangeName, symbol, strategy_callback):
-        channel = exchangeName+".orderbook"+"."+symbol
+        channel = "OrderBookChange"+"."+exchangeName+"."+symbol
+        channel = self.redislib.setChannelName(channel)
+
         await self.subscribe(channel, callback=strategy_callback)
 
     def subscribeposition(self, exchangeName, symbol, callback):
@@ -37,6 +41,7 @@ class ExchangeService:
 
     async def reader(self, ch, callback):
         while (await ch.wait_message()):
+            print("on reader")
             data = await ch.get_json()
             ch_name = ch.name.decode('utf-8')
             callback(data)
