@@ -1,12 +1,33 @@
 import configparser
-
-
+import numpy as np
+import pandas as pd
+import json
 class RedisLib(object):
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read('config.ini')
-        self.env =  self.config.get('env','env')
+        self.env = self.config.get('env', 'env')
 
     def setChannelName(self, channel):
-        newChannel = self.env +"."+ channel
+        newChannel = self.env + "." + channel
         return newChannel
+
+    def setKeyName(self, name):
+        newName = self.env + "." + name
+        return newName
+
+    # ascending 为True 为从小到大
+    def ResampleOrderbooks(self,pricePairs, samplingRate, ascending):
+        ary = np.array(pricePairs).T
+        prices = ary[0]
+        qtys = ary[1]
+        d2 = dict({'qty': qtys})
+        df = pd.DataFrame(d2, index=pd.to_timedelta(prices, unit='S'))
+        df = df.resample(str(samplingRate)+'S').sum()
+        pricesB = df.index.microseconds / 1000 / 1000 + \
+            df.index.seconds + df.index.nanoseconds / 1000/1000 / 1000
+        df.index = pricesB
+        res = df[df['qty'] > 0]
+        res = res.sort_index(ascending=ascending)
+        prices = np.array([res.index,res['qty']]).T.tolist()
+        return prices
