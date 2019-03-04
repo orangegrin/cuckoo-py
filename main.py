@@ -1,7 +1,3 @@
-#!/usr/bin/python3
-from bitmexom import bitmexom
-import asyncio
-import ExchangeService as es
 
 exchangeA = "BitMex"
 exchangeB = "HBHM"
