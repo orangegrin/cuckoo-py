@@ -43,10 +43,14 @@ class BitMEX(object):
         self.session.headers.update({'accept': 'application/json'})
 
         # Create websocket for streaming data
-        self.ws = BitMEXWebsocket()
+        self.ws = BitMEXWebsocket(logger=self.logger)
         self.ws.connect(base_url, symbol, shouldAuth=shouldWSAuth)
 
         self.timeout = timeout
+
+    def set_websocket_callback(self,sub_callback_dic):
+        self.ws.set_sub_callback(sub_callback_dic)
+        pass    
 
     def __del__(self):
         self.exit()
@@ -173,7 +177,7 @@ class BitMEX(object):
         for order in orders:
             order['clOrdID'] = self.orderIDPrefix + base64.b64encode(uuid.uuid4().bytes).decode('utf8').rstrip('=\n')
             order['symbol'] = self.symbol
-            if self.postOnly:
+            if self.postOnly and order.get('ordType',None)=='Limit' and order.get('execInst',None) :
                 order['execInst'] = 'ParticipateDoNotInitiate'
         return self._curl_bitmex(path='order/bulk', postdict={'orders': orders}, verb='POST')
 
@@ -284,14 +288,14 @@ class BitMEX(object):
                                   "Request: %s \n %s" % (url, json.dumps(postdict)))
                 exit_or_throw(e)
 
-            # 429, ratelimit; cancel orders & wait until X-Ratelimit-Reset
+            # 429, ratelimit; cancel orders & wait until X-RateLimit-Reset
             elif response.status_code == 429:
                 self.logger.error("Ratelimited on current request. Sleeping, then trying again. Try fewer " +
                                   "order pairs or contact support@bitmex.com to raise your limits. " +
                                   "Request: %s \n %s" % (url, json.dumps(postdict)))
 
                 # Figure out how long we need to wait.
-                ratelimit_reset = response.headers['X-Ratelimit-Reset']
+                ratelimit_reset = response.headers['X-RateLimit-Reset']
                 to_sleep = int(ratelimit_reset) - int(time.time())
                 reset_str = datetime.datetime.fromtimestamp(int(ratelimit_reset)).strftime('%X')
 

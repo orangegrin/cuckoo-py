@@ -14,7 +14,7 @@ from market_maker.utils import log, constants, errors, math
 
 # Used for reloading the bot - saves modified times of key files
 import os
-watched_files_mtimes = [(f, getmtime(f)) for f in settings.WATCHED_FILES]
+# watched_files_mtimes = [(f, getmtime(f)) for f in settings.WATCHED_FILES]
 
 
 #
@@ -253,8 +253,9 @@ class OrderManager:
         # Set up our buy & sell positions as the smallest possible unit above and below the current spread
         # and we'll work out from there. That way we always have the best price but we don't kill wide
         # and potentially profitable spreads.
-        self.start_position_buy = ticker["buy"] + self.instrument['tickSize']
-        self.start_position_sell = ticker["sell"] - self.instrument['tickSize']
+        # logger.error(self.instrument)
+        self.start_position_buy = ticker["buy"] #+ self.instrument['tickSize']
+        self.start_position_sell = ticker["sell"] #- self.instrument['tickSize']
 
         # If we're maintaining spreads and we already have orders in place,
         # make sure they're not ours. If they are, we need to adjust, otherwise we'll
@@ -266,9 +267,9 @@ class OrderManager:
                 self.start_position_sell = ticker["sell"]
 
         # Back off if our spread is too small.
-        if self.start_position_buy * (1.00 + settings.MIN_SPREAD) > self.start_position_sell:
-            self.start_position_buy *= (1.00 - (settings.MIN_SPREAD / 2))
-            self.start_position_sell *= (1.00 + (settings.MIN_SPREAD / 2))
+        # if self.start_position_buy * (1.00 + settings.MIN_SPREAD) > self.start_position_sell:
+        #     self.start_position_buy *= (1.00 - (settings.MIN_SPREAD / 2))
+        #     self.start_position_sell *= (1.00 + (settings.MIN_SPREAD / 2))
 
         # Midpoint, used for simpler order placement.
         self.start_position_mid = ticker["mid"]
@@ -284,6 +285,10 @@ class OrderManager:
     def get_price_offset(self, index):
         """Given an index (1, -1, 2, -2, etc.) return the price for that side of the book.
            Negative is a buy, positive is a sell."""
+
+        start_position = self.start_position_buy if index < 0 else self.start_position_sell
+        return math.toNearest(start_position , self.instrument['tickSize'])
+
         # Maintain existing spreads for max profit
         if settings.MAINTAIN_SPREADS:
             start_position = self.start_position_buy if index < 0 else self.start_position_sell
@@ -349,36 +354,35 @@ class OrderManager:
         sells_matched = 0
         existing_orders = self.exchange.get_orders()
 
+        position = self.exchange.get_position()
+        current_position_qty = position['currentQty']
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
         for order in existing_orders:
             try:
-                if order['side'] == 'Buy':
+                desired_order=None
+                if order['side'] == 'Buy' and current_position_qty < 0:
                     desired_order = buy_orders[buys_matched]
                     buys_matched += 1
-                else:
+                elif order['side'] == 'Sell' and current_position_qty > 0:
                     desired_order = sell_orders[sells_matched]
                     sells_matched += 1
-
+                
                 # Found an existing order. Do we need to amend it?
-                if desired_order['orderQty'] != order['leavesQty'] or (
-                        # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
-                        desired_order['price'] != order['price'] and
-                        abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):
-                    to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
+                if desired_order and (desired_order['orderQty'] != order['leavesQty'] or desired_order['price'] != order['price']):
+                    # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
+                    to_amend.append({'orderID': order['orderID'], 'orderQty': order['leavesQty'],
                                      'price': desired_order['price'], 'side': order['side']})
             except IndexError:
                 # Will throw if there isn't a desired order to match. In that case, cancel it.
                 to_cancel.append(order)
+        if len(existing_orders)==0:
+            if buys_matched < len(buy_orders) and current_position_qty <= 0 :
+                to_create.extend(buy_orders)
 
-        while buys_matched < len(buy_orders):
-            to_create.append(buy_orders[buys_matched])
-            buys_matched += 1
-
-        while sells_matched < len(sell_orders):
-            to_create.append(sell_orders[sells_matched])
-            sells_matched += 1
-
+            if sells_matched < len(sell_orders) and current_position_qty >= 0 :
+                to_create.extend(sell_orders)
+        
         if len(to_amend) > 0:
             for amended_order in reversed(to_amend):
                 reference_order = [o for o in existing_orders if o['orderID'] == amended_order['orderID']][0]
@@ -501,7 +505,7 @@ class OrderManager:
             sys.stdout.write("-----\n")
             sys.stdout.flush()
 
-            self.check_file_change()
+            # self.check_file_change()
             sleep(settings.LOOP_INTERVAL)
 
             # This will restart on very short downtime, but if it's longer,
@@ -512,7 +516,7 @@ class OrderManager:
 
             self.sanity_check()  # Ensures health of mm - several cut-out points here
             self.print_status()  # Print skew, delta, etc
-            # self.place_orders()  # Creates desired orders and converges to existing orders
+            self.place_orders()  # Creates desired orders and converges to existing orders
 
     def restart(self):
         logger.info("Restarting the market maker...")

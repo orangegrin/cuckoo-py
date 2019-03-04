@@ -22,10 +22,12 @@ def OrderbookChangeHandler(orderbook):
     position = market["position"]
     # 如果当前交易所有没有仓位
     if(position.qty == 0):
+
         # 双向开仓
         OpenPosition(orderbook, "sell")
         OpenPosition(orderbook, "buy")
     else:
+       
         # 先平仓
         ClosePosition(orderbook)
 
@@ -34,6 +36,7 @@ def OrderChangeHandler(order):
     # 如果限价交易订单完成，则在另外一个交易所反向市价套保
     if(order.ordStatus == "Filled"):
         side = "sell" if order.side == "buy" else "buy"
+
         es.OpenMarketOrder(exchangeB, symbol, side, order.qty)
 
 
@@ -41,9 +44,8 @@ def PositionChangeHandler(position):
     # 保存仓位信息
     market["position"] = position
 
-# =====================================================
+
 # 根据orderbook数据计算对手交易所的限价单开仓价格与数量
-# orderbook.bid1 为最接近盘口的交易买单
 # orderbook.ask1 为最接近盘口的交易卖单
 def GetLimitOrderPair(orderbook, side):
     price = 0

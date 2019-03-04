@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import importlib
 import os
 import sys
-import imp
 
 from market_maker.utils.dotdict import dotdict
 import market_maker._settings_base as baseSettings
@@ -18,7 +17,7 @@ def import_path(fullpath):
     filename, ext = os.path.splitext(filename)
     sys.path.insert(0, path)
     module = importlib.import_module(filename, path)
-    imp.reload(module)  # Might be out of date
+    importlib.reload(module)  # Might be out of date
     del sys.path[0]
     return module
 

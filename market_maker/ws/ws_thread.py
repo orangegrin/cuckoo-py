@@ -8,7 +8,7 @@ import json
 import decimal
 import logging
 from market_maker.settings import settings
-from market_maker.auth.APIKeyAuth import generate_nonce, generate_signature
+from market_maker.auth.APIKeyAuth import generate_expires, generate_signature
 from market_maker.utils.log import setup_custom_logger
 from market_maker.utils.math import toNearest
 from future.utils import iteritems
@@ -16,7 +16,8 @@ from future.standard_library import hooks
 with hooks():  # Python 2/3 compat
     from urllib.parse import urlparse, urlunparse
 
-
+DefaultUnAuthSubTables=["quote","instrument","orderBookL2"]
+DefaultAuthSubTables=["order", "execution", "position"]
 # Connects to BitMEX websocket for streaming realtime data.
 # The Marketmaker still interacts with this as if it were a REST Endpoint, but now it can get
 # much more realtime data without heavily polling the API.
@@ -30,12 +31,28 @@ class BitMEXWebsocket():
     # Don't grow a table larger than this amount. Helps cap memory usage.
     MAX_TABLE_LEN = 200
 
-    def __init__(self):
-        self.logger = logging.getLogger('root')
+    def __init__(self,UnAuthSubTables=DefaultUnAuthSubTables,
+                    AuthSubTables=DefaultAuthSubTables,logger=None):
+                    
+        self.logger = logging.getLogger('root') if not logger else logger
+        self.UnAuthSubTables = UnAuthSubTables
+        self.AuthSubTables = AuthSubTables
+        # add subscrib call back
+        self.sub_callback_dic={}
+        
+
         self.__reset()
 
     def __del__(self):
         self.exit()
+
+    def set_sub_callback(self,sub_callback_dic):
+        """
+        sub_callback_dic:{'orderbook':{'callback_fun':callback_fun,'particle_size':0.5}}
+        """
+        self.sub_callback_dic.update(sub_callback_dic)
+
+
 
     def connect(self, endpoint="", symbol="XBTN15", shouldAuth=True):
         '''Connect to the websocket and initialize data stores.'''
@@ -46,11 +63,11 @@ class BitMEXWebsocket():
 
         # We can subscribe right in the connection querystring, so let's build that.
         # Subscribe to all pertinent endpoints
-        subscriptions = [sub + ':' + symbol for sub in ["quote", "trade"]]
-        subscriptions += ["instrument"]  # We want all of them
+        subscriptions = [sub + ':' + symbol for sub in self.UnAuthSubTables]
+        # subscriptions += ["instrument"]  # We want all of them
         if self.shouldAuth:
-            subscriptions += [sub + ':' + symbol for sub in ["order", "execution"]]
-            subscriptions += ["margin", "position"]
+            subscriptions += [sub + ':' + symbol for sub in self.AuthSubTables]
+            subscriptions += ["margin"]
 
         # Get WS URL and connect.
         urlParts = list(urlparse(endpoint))
@@ -183,9 +200,9 @@ class BitMEXWebsocket():
         self.logger.info("Authenticating with API Key.")
         # To auth to the WS using an API key, we generate a signature of a nonce and
         # the WS API endpoint.
-        nonce = generate_nonce()
+        nonce = generate_expires()
         return [
-            "api-nonce: " + str(nonce),
+            "api-expires: " + str(nonce),
             "api-signature: " + generate_signature(settings.API_SECRET, 'GET', '/realtime', nonce, ''),
             "api-key:" + settings.API_KEY
         ]
@@ -193,22 +210,23 @@ class BitMEXWebsocket():
     def __wait_for_account(self):
         '''On subscribe, this data will come down. Wait for it.'''
         # Wait for the keys to show up from the ws
-        while not {'margin', 'position', 'order'} <= set(self.data):
+        while not set(self.AuthSubTables) <= set(self.data):
             sleep(0.1)
 
     def __wait_for_symbol(self, symbol):
         '''On subscribe, this data will come down. Wait for it.'''
-        while not {'instrument', 'trade', 'quote'} <= set(self.data):
+        while not set(self.UnAuthSubTables) <= set(self.data):
             sleep(0.1)
 
     def __send_command(self, command, args):
         '''Send a raw command.'''
         self.ws.send(json.dumps({"op": command, "args": args or []}))
 
-    def __on_message(self, ws, message):
+    def __on_message(self, message):
         '''Handler for parsing WS messages.'''
         message = json.loads(message)
         self.logger.debug(json.dumps(message))
+        # print("####:"+json.dumps(self.data))
 
         table = message['table'] if 'table' in message else None
         action = message['action'] if 'action' in message else None
@@ -286,13 +304,30 @@ class BitMEXWebsocket():
                         self.data[table].remove(item)
                 else:
                     raise Exception("Unknown action: %s" % action)
+            
+            #handle call back by tablename
+            callback = self.sub_callback_dic.get(table,None)
+            if callback:
+                if table=='orderBookL2':
+                    pass
+                elif table=='order':
+                    pass
+                elif table=='position':
+                    pass
+                #formate data by require
+                tar_data = callback['dataformat_fun'](self.data[table])
+                #call main routine callback function
+                callback['callback_fun'](tar_data)
+
+                
+
         except:
             self.logger.error(traceback.format_exc())
 
-    def __on_open(self, ws):
+    def __on_open(self):
         self.logger.debug("Websocket Opened.")
 
-    def __on_close(self, ws):
+    def __on_close(self):
         self.logger.info('Websocket Closed')
         self.exit()
 

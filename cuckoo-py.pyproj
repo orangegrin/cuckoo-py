@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{4be3b3bc-9408-4fb4-bac9-70643c5370ab}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>bitmexom.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="bitmexom.py" />
+    <Compile Include="ExchangeService.py" />
+    <Compile Include="hbdmapi_demo.py" />
+    <Compile Include="hbdmws.py" />
+    <Compile Include="HuobiDMService.py" />
+    <Compile Include="HuobiDMUtil.py" />
+    <Compile Include="main.py" />
+    <Compile Include="market_maker\auth\AccessTokenAuth.py" />
+    <Compile Include="market_maker\auth\APIKeyAuth.py" />
+    <Compile Include="market_maker\auth\APIKeyAuthWithExpires.py" />
+    <Compile Include="market_maker\auth\__init__.py" />
+    <Compile Include="market_maker\bitmex.py" />
+    <Compile Include="market_maker\bitmex_mon_api.py" />
+    <Compile Include="market_maker\custom_strategy.py" />
+    <Compile Include="market_maker\market_maker.py" />
+    <Compile Include="market_maker\settings.py" />
+    <Compile Include="market_maker\tii_market_maker.py" />
+    <Compile Include="market_maker\utils\constants.py" />
+    <Compile Include="market_maker\utils\dotdict.py" />
+    <Compile Include="market_maker\utils\errors.py" />
+    <Compile Include="market_maker\utils\log.py" />
+    <Compile Include="market_maker\utils\math.py" />
+    <Compile Include="market_maker\utils\__init__.py" />
+    <Compile Include="market_maker\ws\ws_thread.py" />
+    <Compile Include="market_maker\ws\__init__.py" />
+    <Compile Include="market_maker\_settings_base.py" />
+    <Compile Include="market_maker\__init__.py" />
+    <Compile Include="og_strategy.py" />
+    <Compile Include="settings.py" />
+    <Compile Include="tii_strategy.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="market_maker" />
+    <Folder Include="market_maker\auth" />
+    <Folder Include="market_maker\utils" />
+    <Folder Include="market_maker\ws" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
