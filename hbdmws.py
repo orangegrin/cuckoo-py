@@ -54,8 +54,8 @@ if __name__ == '__main__':
                 else:
                     trade_id = data['tick']['id']
                     channel = rsLib.setChannelName("OrderBookChange."+exchange+"."+symbol)
-                    bids = rsLib.ResampleOrderbooks(data['tick']['bids'],0.5,True)
-                    asks = rsLib.ResampleOrderbooks(data['tick']['asks'],0.5,False)
+                    bids = rsLib.ResampleOrderbooks(data['tick']['bids'],0.5,False)
+                    asks = rsLib.ResampleOrderbooks(data['tick']['asks'],0.5,True)
 
                     pubData = {
                         "Exchange": exchange,
