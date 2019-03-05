@@ -16,13 +16,12 @@ class BitMexMon(object):
         """ Init bitmex api obj """
         self.symbol = symbol
         self.bitmex = bitmex.BitMEX(
-            base_url=settings.BASE_URL, symbol=self.symbol,
-            apiKey=settings.API_KEY, apiSecret=settings.API_SECRET,
+            base_url=settings.BITMEX_BASE_URL, symbol=self.symbol,
+            apiKey=settings.BITMEX_API_KEY, apiSecret=settings.BITMEX_API_SECRET,
             orderIDPrefix=settings.ORDERID_PREFIX, postOnly=settings.POST_ONLY,
             timeout=settings.TIMEOUT
         )
 
-        pass
     
     def prepare_order(self,price,side,orderQty,ordType):
         """
@@ -100,27 +99,9 @@ class BitMexMon(object):
             }
         }
         self.bitmex.set_websocket_callback(sub_callback_dic)
-        pass
 
 
 
 
-def orderBookL2_data_format_func(data):
-    print("In orderbookL2 data_format_func handle!!")
-    return data[:6]+data[-6:]
 
-def orderBookL2_callback(data):
-    print("In orderbookL2 handle!!")
-    print(data)
-
-def run() -> None:
-    bitmex_mon = BitMexMon('XBTUSD')
-
-    # Try/except just keeps ctrl-c from printing an ugly stacktrace
-    bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)
-    try:
-        while True:
-            sleep(3)
-    except (KeyboardInterrupt, SystemExit):
-        sys.exit()
     
