@@ -309,17 +309,19 @@ class BitMEXWebsocket():
             #handle call back by tablename
             callback = self.sub_callback_dic.get(table,None)
             if callback:
+                tar_data=self.data[table]
                 if table=='orderBookL2':
                     pass
                 elif table=='order':
-
+                    tar_data=[x for x in tar_data if x['workingIndicator']]
                     pass
                 elif table=='position':
                     pass
                 #formate data by require
-                tar_data = callback['dataformat_fun']([x for x in self.data[table] if x['workingIndicator']])
+                tar_data = callback['dataformat_fun'](tar_data)
                 #call main routine callback function
-                callback['callback_fun'](tar_data)
+                if tar_data:
+                    callback['callback_fun'](tar_data)
 
                 
 

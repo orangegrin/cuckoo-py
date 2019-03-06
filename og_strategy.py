@@ -1,6 +1,7 @@
 
 import time
 import sys
+import traceback
 import redis
 import pprint
 import json
@@ -50,44 +51,61 @@ def orderBookL2_callback(data):
 def order_callback(data):
     print("In order handle!!")
     #[[price,qty]...]
-    pprint.pprint(data)
     
     tar_symbol = symbol_ch_dict[exchange][symbol]
     channel = rsLib.setChannelName("OrderChange."+exchange+"."+tar_symbol)
     
-    updateUtc = int(time.time()*1000)
-    pub_data = {
-        "Exchange": exchange,
-        "SequenceId":  str(updateUtc),
-        "MarketSymbol": tar_symbol,
-        "LastUpdatedUtc": updateUtc
-        
-    }
+    pub_data=[]
+    for idata in data:
+        pub_data.append( {
+            "Exchange": exchange,
+            "MarketSymbol":tar_symbol,
+            "Amount":idata.get('leavesQty',None),
+            "Price":idata.get('price',None),
+            "StopPrice":None,
+            "IsBuy":None,
+            "IsMargin":None,
+            "ShouldRoundAmount":None,
+            "OrderType":idata.get('ordType',None),
+            "ExtraParameters":None
+        })
     redis_pub(channel,pub_data)
+    pprint.pprint(pub_data)
 
 def position_callback(data):
     print("In position handle!!")
     # pprint.pprint(data)
     #[[price,qty]...]
-    current_position={'avgCostPrice': data[0]['avgCostPrice'], 'avgEntryPrice': data[0]['avgEntryPrice'], 'currentQty': data[0]['currentQty'], 'symbol': symbol}
+    current_position={
+        'avgCostPrice': data[0].get('avgCostPrice',None), 
+        'avgEntryPrice': data[0].get('avgEntryPrice',None), 
+        'currentQty': data[0].get('currentQty',None), 
+        'symbol': symbol
+    }
     if data_cache.get('position',{})!=current_position:
         data_cache['position']=current_position
         tar_symbol = symbol_ch_dict[exchange][symbol]
         channel = rsLib.setChannelName("PositionChange."+exchange+"."+tar_symbol)
-
-        updateUtc = int(time.time()*1000)
-        pub_data = {
-            "Exchange": exchange,
-            "SequenceId":  str(updateUtc),
-            "MarketSymbol": tar_symbol,
-            "LastUpdatedUtc": updateUtc,
-            'avgCostPrice': data[0]['avgCostPrice'], 
-            'avgEntryPrice': data[0]['avgEntryPrice'], 
-            'currentQty': data[0]['currentQty']
-        }
-        # {'avgCostPrice': 0, 'avgEntryPrice': 0, 'currentQty': 0, 'symbol': symbol}
-        redis_pub(channel,pub_data)
-        pprint.pprint(data_cache)
+        
+        try:
+            pub_data ={
+                "Exchange":exchange,
+                "MarketSymbol":tar_symbol,
+                "Amount":data[0].get('currentQty',None),
+                "Total":0,
+                "ProfitLoss":data[0].get('unrealisedPnl',None),
+                "LendingFees":0,
+                "Type":0,
+                "BasePrice":data[0].get('avgEntryPrice',None),
+                "LiquidationPrice":data[0].get('liquidationPrice',None),
+                "Leverage":data[0].get('leverage',None)
+            }
+            # {'avgCostPrice': 0, 'avgEntryPrice': 0, 'currentQty': 0, 'symbol': symbol}
+            redis_pub(channel,pub_data)
+            pprint.pprint(data_cache)
+        except Exception as e:
+            pprint.pprint(traceback.format_exc())
+            pprint.pprint(data)
 
 def redis_pub(channel,pub_data):
     return True
@@ -106,8 +124,7 @@ def run() -> None:
     # Try/except just keeps ctrl-c from printing an ugly stacktrace
     # bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)
     bitmex_mon.subscribe_data_callback('order',order_callback,lambda x:x)
-    # bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
-
+    bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
 
     try:
         while True:
