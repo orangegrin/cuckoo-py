@@ -5,7 +5,8 @@ from exchange.enums import Side
 
 exchange_a = "bitmex"
 exchange_b = "huobi"
-symbol = "BTC_USD"
+symbol_a = "BTC_USD"
+symbol_b = "BTC_CW"
 max_qty = 200
 min_rate = 0.003
 a_fees = -0.00025
@@ -37,7 +38,7 @@ class Strategy(object):
         # 如果限价交易订单完成，则在另外一个交易所反向市价套保
         if(order.ordStatus == "Filled"):
             side = "sell" if order.side == "buy" else "buy"
-            self.es.open_market_order(exchange_b, symbol, side, order.qty)
+            self.es.open_market_order(exchange_b, symbol_b, side, order.qty)
 
     def position_change_handler(self, position):
         # 保存仓位信息
@@ -50,9 +51,10 @@ class Strategy(object):
     def get_limit_order_pair(self, orderbook, side):
         price = 0
         qty = 0
-        fees = (a_fees * orderbook.bid1.price) + (b_fess * orderbook.bid1.price)
-        standarddev = self.es.GetStandardDev(
-            exchange_a, exchange_b, symbol, "Min", 60)
+        fees = (a_fees * orderbook.bid1.price) + \
+            (b_fess * orderbook.bid1.price)
+        standarddev = self.es.get_standard_dev(
+            exchange_a, exchange_b, symbol_a, "Min", 60)
         if(side == "sell"):
             price = orderbook.bid1.price * \
                 (min_rate + 1) + fees * 2 + standarddev
@@ -80,7 +82,7 @@ class Strategy(object):
         price, qty = self.get_limit_order_pair(orderbook, side)
         if(qty > max_qty):
             qty = max_qty
-        self.es.modify_limit_order(exchange_a, symbol, side, qty, price)
+        self.es.modify_limit_order(exchange_a, symbol_a, side, qty, price)
 
     # 根据orderbook数据进行平仓操作
     def close_position(self, orderbook):
@@ -89,14 +91,14 @@ class Strategy(object):
         price, qty = self.get_close_position_order_pair(orderbook, side)
         if(qty > position.qty):
             qty = position.qty
-        self.es.modify_limit_order(exchange_a, exchange_a,
-                                 symbol, side, qty, price)
+        self.es.modify_limit_order(exchange_a, symbol_a, side, qty, price)
 
     async def run(self):
         await self.es.initexchange()
-        await self.es.subscribeorderbook(exchange_b, symbol, self.orderbook_change_handler)
-        await self.es.subscribeposition(exchange_a, symbol, self.position_change_handler)
-        await self.es.subscribeorderchange(exchange_a, symbol, self.order_change_handler)
+        await self.es.subscribe_orderbook(exchange_b, symbol_b, self.orderbook_change_handler)
+        await self.es.subscribe_position(exchange_a, symbol_a, self.position_change_handler)
+        await self.es.subscribe_order_change(exchange_a, symbol_a, self.order_change_handler)
+
 
 async def run():
     strategy = Strategy()
