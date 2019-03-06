@@ -16,13 +16,12 @@ class BitMexMon(object):
         """ Init bitmex api obj """
         self.symbol = symbol
         self.bitmex = bitmex.BitMEX(
-            base_url=settings.BASE_URL, symbol=self.symbol,
-            apiKey=settings.API_KEY, apiSecret=settings.API_SECRET,
+            base_url=settings.BITMEX_BASE_URL, symbol=self.symbol,
+            apiKey=settings.BITMEX_API_KEY, apiSecret=settings.BITMEX_API_SECRET,
             orderIDPrefix=settings.ORDERID_PREFIX, postOnly=settings.POST_ONLY,
             timeout=settings.TIMEOUT
         )
 
-        pass
     
     def prepare_order(self,price,side,orderQty,ordType):
         """
@@ -100,7 +99,6 @@ class BitMexMon(object):
             }
         }
         self.bitmex.set_websocket_callback(sub_callback_dic)
-        pass
 
 
     

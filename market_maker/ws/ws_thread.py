@@ -203,8 +203,8 @@ class BitMEXWebsocket():
         nonce = generate_expires()
         return [
             "api-expires: " + str(nonce),
-            "api-signature: " + generate_signature(settings.API_SECRET, 'GET', '/realtime', nonce, ''),
-            "api-key:" + settings.API_KEY
+            "api-signature: " + generate_signature(settings.BITMEX_API_SECRET, 'GET', '/realtime', nonce, ''),
+            "api-key:" + settings.BITMEX_API_KEY
         ]
 
     def __wait_for_account(self):
@@ -314,8 +314,10 @@ class BitMEXWebsocket():
                     pass
                 elif table=='position':
                     pass
+                tar_data = self.data[table]
                 #formate data by require
-                tar_data = callback['dataformat_fun'](self.data[table])
+                if callback.get('dataformat_fun',None):
+                    tar_data = callback['dataformat_fun'](tar_data)
                 #call main routine callback function
                 callback['callback_fun'](tar_data)
 
