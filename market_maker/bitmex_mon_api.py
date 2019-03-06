@@ -12,14 +12,14 @@ logger = log.setup_custom_logger('root')
 
 class BitMexMon(object):
 
-    def __init__(self,symbol):
+    def __init__(self,symbol,AuthSubTables=None,UnAuthSubTables=None):
         """ Init bitmex api obj """
         self.symbol = symbol
         self.bitmex = bitmex.BitMEX(
             base_url=settings.BITMEX_BASE_URL, symbol=self.symbol,
             apiKey=settings.BITMEX_API_KEY, apiSecret=settings.BITMEX_API_SECRET,
             orderIDPrefix=settings.ORDERID_PREFIX, postOnly=settings.POST_ONLY,
-            timeout=settings.TIMEOUT
+            timeout=settings.TIMEOUT,AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables
         )
 
     

@@ -18,7 +18,7 @@ class BitMEX(object):
     """BitMEX API Connector."""
 
     def __init__(self, base_url=None, symbol=None, apiKey=None, apiSecret=None,
-                 orderIDPrefix='mm_bitmex_', shouldWSAuth=True, postOnly=False, timeout=7):
+                 orderIDPrefix='mm_bitmex_', shouldWSAuth=True, postOnly=False, timeout=7,AuthSubTables=None,UnAuthSubTables=None):
         """Init connector."""
         self.logger = logging.getLogger('root')
         self.base_url = base_url
@@ -43,7 +43,7 @@ class BitMEX(object):
         self.session.headers.update({'accept': 'application/json'})
 
         # Create websocket for streaming data
-        self.ws = BitMEXWebsocket(logger=self.logger)
+        self.ws = BitMEXWebsocket(logger=self.logger,AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables)
         self.ws.connect(base_url, symbol, shouldAuth=shouldWSAuth)
 
         self.timeout = timeout

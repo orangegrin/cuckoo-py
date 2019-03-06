@@ -31,12 +31,12 @@ class BitMEXWebsocket():
     # Don't grow a table larger than this amount. Helps cap memory usage.
     MAX_TABLE_LEN = 200
 
-    def __init__(self,UnAuthSubTables=DefaultUnAuthSubTables,
-                    AuthSubTables=DefaultAuthSubTables,logger=None):
+    def __init__(self,logger=None,UnAuthSubTables=None,
+                    AuthSubTables=None):
                     
         self.logger = logging.getLogger('root') if not logger else logger
-        self.UnAuthSubTables = UnAuthSubTables
-        self.AuthSubTables = AuthSubTables
+        self.UnAuthSubTables = UnAuthSubTables if UnAuthSubTables else DefaultUnAuthSubTables
+        self.AuthSubTables = AuthSubTables if AuthSubTables else DefaultAuthSubTables
         # add subscrib call back
         self.sub_callback_dic={}
         
@@ -203,8 +203,8 @@ class BitMEXWebsocket():
         nonce = generate_expires()
         return [
             "api-expires: " + str(nonce),
-            "api-signature: " + generate_signature(settings.BITMEX_API_SECRET, 'GET', '/realtime', nonce, ''),
-            "api-key:" + settings.BITMEX_API_KEY
+            "api-signature: " + generate_signature(settings.API_SECRET, 'GET', '/realtime', nonce, ''),
+            "api-key:" + settings.API_KEY
         ]
 
     def __wait_for_account(self):
@@ -314,10 +314,8 @@ class BitMEXWebsocket():
                     pass
                 elif table=='position':
                     pass
-                tar_data = self.data[table]
                 #formate data by require
-                if callback.get('dataformat_fun',None):
-                    tar_data = callback['dataformat_fun'](tar_data)
+                tar_data = callback['dataformat_fun'](self.data[table])
                 #call main routine callback function
                 callback['callback_fun'](tar_data)
 
