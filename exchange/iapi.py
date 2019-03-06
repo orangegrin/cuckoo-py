@@ -1,18 +1,24 @@
-from Exchange.Enum import Side,OrderType,OrderResultType
+from abc import ABCMeta, abstractmethod
 
-class ExchangeAPI(object):
-    def __init__(self):
+class IExchangeAPI(metaclass=ABCMeta):
+    @abstractmethod
+    def open_market_order(self, market_symbol, side, price, amount):
         pass
-        
-    def OpenMarketOrder(self,MarketSymbol,Side,Price,Amount):
+    @abstractmethod
+    def open_limit_order(self, market_symbol, side, price, amount):
         pass
-
-    def OpenLimitOrder(self,MarketSymbol,Side,Price,Amount):
-        pass
-
-    def ModifyOrder(self,MarketSymbol,OrderId,Price,Amount):
+    @abstractmethod
+    def modify_order(self, market_symbol, order_id, price, amount):
         pass
 
-    def CancelOrder(self,OrderId):
+    # buy_orders = []
+    # sell_orders = []
+    # populate buy and sell orders, e.g.
+    # buy_orders.append({'price': 999.0, 'orderQty': 100, 'side': "Buy"})
+    # sell_orders.append({'price': 1001.0, 'orderQty': 100, 'side': "Sell"})
+    @abstractmethod
+    def converge_orders(self, buy_orders, sell_orders):
         pass
-
+    @abstractmethod
+    def cancel_order(self, order_id):
+        pass

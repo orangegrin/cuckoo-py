@@ -1,6 +1,6 @@
 import sys
 
-from market_maker.market_maker import OrderManager
+from exchange.bitmex.market_maker.market_maker import OrderManager
 
 
 class CustomOrderManager(OrderManager):
