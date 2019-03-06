@@ -1,9 +1,7 @@
 #!/usr/bin/python3
-from bitmexom import bitmexom
 import asyncio
-import ExchangeService
-from ExchangeService import ExchangeService
-from Exchange.Enum import Side
+from exchange.service import ExchangeService
+from exchange.enums import Side
 
 exchange_a = "bitmex"
 exchange_b = "huobi"
