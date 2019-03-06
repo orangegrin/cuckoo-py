@@ -90,7 +90,7 @@ class Strategy(object):
         price, qty = self.GetClosePositionOrderPair(orderbook, side)
         if(qty > position.qty):
             qty = position.qty
-        self.es.modifylimitorder(exchangeA, exchangeA,
+        self.es.Modifylimitorder(exchangeA, exchangeA,
                                  symbol, side, qty, price)
 
     async def run(self):
