@@ -2,8 +2,8 @@ import sys
 sys.path.append('../')
 from exchange.iapi import ExchangeAPI
 from exchange.enums import Side,OrderType,OrderResultType
+from service import HuobiDM
 
-from exchange.service import HuobiDM
 import configparser
 
 class HuobiAPI(ExchangeAPI):
