@@ -136,7 +136,7 @@ class BitMEXWebsocket():
 
     def position(self, symbol):
         positions = self.data['position']
-        pos = [p for p in positions if p['symbol'] == symbol]
+        pos = [p for p in positions if p['symbol'] == symbol and p['isOpen']]
         if len(pos) == 0:
             # No position found; stub it
             return {'avgCostPrice': 0, 'avgEntryPrice': 0, 'currentQty': 0, 'symbol': symbol}

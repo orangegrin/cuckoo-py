@@ -52,7 +52,7 @@ class BitMexMon(object):
         """
         while True:
             try:
-                self.bitmex.cancel(orderIDs)
+                self.bitmex.cancel(orderIDs,cancel_all=cancel_all)
                 sleep(settings.API_REST_INTERVAL)
             except ValueError as e:
                 logger.info(e)
@@ -65,7 +65,7 @@ class BitMexMon(object):
         """
         get account current position with self.symbol
         """
-        self.bitmex.position(self.symbol)
+        return self.bitmex.position(self.symbol)
         
 
     def close_position(self,price,ordType):

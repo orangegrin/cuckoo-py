@@ -12,6 +12,7 @@ rsLib = RedisLib()
 exchange='bitmex'
 symbol='XBTUSD'
 symbol_ch_dict={"bitmex":{"XBTUSD":"BTCUSD"}}
+data_cache={}
 
 DefaultUnAuthSubTables=["quote"]
 # DefaultUnAuthSubTables=["orderBookL2"]
@@ -66,21 +67,27 @@ def order_callback(data):
 
 def position_callback(data):
     print("In position handle!!")
-    pprint.pprint(data)
+    # pprint.pprint(data)
     #[[price,qty]...]
-    
-    tar_symbol = symbol_ch_dict[exchange][symbol]
-    channel = rsLib.setChannelName("PositionChange."+exchange+"."+tar_symbol)
+    current_position={'avgCostPrice': data[0]['avgCostPrice'], 'avgEntryPrice': data[0]['avgEntryPrice'], 'currentQty': data[0]['currentQty'], 'symbol': symbol}
+    if data_cache.get('position',{})!=current_position:
+        data_cache['position']=current_position
+        tar_symbol = symbol_ch_dict[exchange][symbol]
+        channel = rsLib.setChannelName("PositionChange."+exchange+"."+tar_symbol)
 
-    updateUtc = int(time.time()*1000)
-    pub_data = {
-        "Exchange": exchange,
-        "SequenceId":  str(updateUtc),
-        "MarketSymbol": tar_symbol,
-        "LastUpdatedUtc": updateUtc
-        
-    }
-    redis_pub(channel,pub_data)
+        updateUtc = int(time.time()*1000)
+        pub_data = {
+            "Exchange": exchange,
+            "SequenceId":  str(updateUtc),
+            "MarketSymbol": tar_symbol,
+            "LastUpdatedUtc": updateUtc,
+            'avgCostPrice': data[0]['avgCostPrice'], 
+            'avgEntryPrice': data[0]['avgEntryPrice'], 
+            'currentQty': data[0]['currentQty']
+        }
+        # {'avgCostPrice': 0, 'avgEntryPrice': 0, 'currentQty': 0, 'symbol': symbol}
+        redis_pub(channel,pub_data)
+        pprint.pprint(data_cache)
 
 def redis_pub(channel,pub_data):
     return True
@@ -91,11 +98,17 @@ def redis_pub(channel,pub_data):
 
 def run() -> None:
     bitmex_mon = BitMexMon(symbol)
-
+    bitmex_mon.cancel_orders([],cancel_all=True)
+    position_callback([bitmex_mon.get_position()])
+    
+    pprint.pprint(data_cache)
+    # return None
     # Try/except just keeps ctrl-c from printing an ugly stacktrace
     # bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)
     bitmex_mon.subscribe_data_callback('order',order_callback,lambda x:x)
     bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
+
+
     try:
         while True:
             time.sleep(3)
@@ -105,3 +118,5 @@ def run() -> None:
 if __name__ == "__main__":
 
     run()
+
+    

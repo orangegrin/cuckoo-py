@@ -202,9 +202,9 @@ class BitMEX(object):
         return [o for o in orders if str(o['clOrdID']).startswith(self.orderIDPrefix)]
 
     @authentication_required
-    def cancel(self, orderID):
+    def cancel(self, orderID,cancel_all=False):
         """Cancel an existing order."""
-        path = "order"
+        path = "order" if not cancel_all else "order/all"
         postdict = {
             'orderID': orderID,
         }
