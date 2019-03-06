@@ -11,6 +11,7 @@ bitmex-market-maker = "*"
 requests = "*"
 redis = "*"
 numpy = "*"
+pandas = "*"
 
 [requires]
 python_version = "3.7"

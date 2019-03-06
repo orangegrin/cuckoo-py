@@ -13,7 +13,8 @@ exchange='bitmex'
 symbol='XBTUSD'
 symbol_ch_dict={"bitmex":{"XBTUSD":"BTCUSD"}}
 
-DefaultUnAuthSubTables=["orderBookL2"]
+DefaultUnAuthSubTables=["quote"]
+# DefaultUnAuthSubTables=["orderBookL2"]
 DefaultAuthSubTables=["order", "position"]
 
 def orderBookL2_data_format_func(data):
@@ -92,7 +93,9 @@ def run() -> None:
     bitmex_mon = BitMexMon(symbol,AuthSubTables=DefaultAuthSubTables,UnAuthSubTables=None)
 
     # Try/except just keeps ctrl-c from printing an ugly stacktrace
-    bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)
+    # bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)
+    bitmex_mon.subscribe_data_callback('order',order_callback,lambda x:x)
+    bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
     try:
         while True:
             time.sleep(3)
