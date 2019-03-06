@@ -43,7 +43,7 @@ class BitMexMon(object):
         orders : [{}...] array type
 
         """
-        self.bitmex.create_bulk_orders(orders)
+        return self.bitmex.create_bulk_orders(orders)
     
     def cancel_orders(self,orderIDs,cancel_all=False):
         """

@@ -312,11 +312,12 @@ class BitMEXWebsocket():
                 if table=='orderBookL2':
                     pass
                 elif table=='order':
+
                     pass
                 elif table=='position':
                     pass
                 #formate data by require
-                tar_data = callback['dataformat_fun'](self.data[table])
+                tar_data = callback['dataformat_fun']([x for x in self.data[table] if x['workingIndicator']])
                 #call main routine callback function
                 callback['callback_fun'](tar_data)
 
