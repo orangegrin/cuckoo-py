@@ -10,6 +10,7 @@ class OrderType(Enum):
     Limit = 0
     Market = 1
 
+
 class OrderResultType(Enum):
     Unknown = 0
     Filled = 1
@@ -19,3 +20,9 @@ class OrderResultType(Enum):
     Canceled = 5
     PendingCancel = 6
 
+class ContractType(Enum):
+    Not = 0
+    D7 = 1
+    D14 = 2
+    Q1 = 3
+    Q2 = 4

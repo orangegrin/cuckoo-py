@@ -3,15 +3,16 @@ from bitmexom import bitmexom
 import asyncio
 import ExchangeService
 from ExchangeService import ExchangeService
+from Exchange.Enum import Side
 
-exchangeA = "bitmex"
-exchangeB = "huobi"
+exchange_a = "bitmex"
+exchange_b = "huobi"
 symbol = "BTC_USD"
-maxQty = 200
-minRate = 0.003
-Afees = -0.00025
-Bfess = 0.00025
-qtyRate = 0.3
+max_qty = 200
+min_rate = 0.003
+a_fees = -0.00025
+b_fess = 0.00025
+qty_rate = 0.3
 market = {}
 
 # ====================handler===========================
@@ -22,7 +23,7 @@ class Strategy(object):
         es = ExchangeService()
         self.es = es
 
-    def OrderbookChangeHandler(self, orderbook):
+    def orderbook_change_handler(self, orderbook):
         print(orderbook)
         # position = market["position"]
         # # 如果当前交易所有没有仓位
@@ -34,13 +35,13 @@ class Strategy(object):
         #     # 先平仓
         #     self.ClosePosition(orderbook)
 
-    def OrderChangeHandler(self, order):
+    def order_change_handler(self, order):
         # 如果限价交易订单完成，则在另外一个交易所反向市价套保
         if(order.ordStatus == "Filled"):
             side = "sell" if order.side == "buy" else "buy"
-            self.es.OpenMarketOrder(exchangeB, symbol, side, order.qty)
+            self.es.open_market_order(exchange_b, symbol, side, order.qty)
 
-    def PositionChangeHandler(self, position):
+    def position_change_handler(self, position):
         # 保存仓位信息
         market["position"] = position
 
@@ -48,58 +49,58 @@ class Strategy(object):
     # 根据orderbook数据计算对手交易所的限价单开仓价格与数量
     # orderbook.bid1 为最接近盘口的交易买单
     # orderbook.ask1 为最接近盘口的交易卖单
-    def GetLimitOrderPair(self, orderbook, side):
+    def get_limit_order_pair(self, orderbook, side):
         price = 0
         qty = 0
-        fees = (Afees * orderbook.bid1.price) + (Bfess * orderbook.bid1.price)
+        fees = (a_fees * orderbook.bid1.price) + (b_fess * orderbook.bid1.price)
         standarddev = self.es.GetStandardDev(
-            exchangeA, exchangeB, symbol, "Min", 60)
+            exchange_a, exchange_b, symbol, "Min", 60)
         if(side == "sell"):
             price = orderbook.bid1.price * \
-                (minRate + 1) + fees * 2 + standarddev
-            qty = orderbook.bid1.qty * qtyRate
+                (min_rate + 1) + fees * 2 + standarddev
+            qty = orderbook.bid1.qty * qty_rate
         else:
             price = orderbook.ask1.price * \
-                (1 - minRate) - fees * 2 + standarddev
-            qty = orderbook.ask1.qty * qtyRate
+                (1 - min_rate) - fees * 2 + standarddev
+            qty = orderbook.ask1.qty * qty_rate
         return price, qty
 
     # 根据orderbook计算计算对手交易所的限价平仓订单价格与数量
-    def GetClosePositionOrderPair(self, orderbook, side):
+    def get_close_position_order_pair(self, orderbook, side):
         price = 0
         qty = 0
         if(side == "sell"):
             price = orderbook.bid1.price
-            qty = orderbook.bid1.qty * qtyRate
+            qty = orderbook.bid1.qty * qty_rate
         else:
             price = orderbook.ask1.price
-            qty = orderbook.ask1.qty * qtyRate
+            qty = orderbook.ask1.qty * qty_rate
         return price, qty
 
     # 根据orderbook数据进行开仓操作
-    def OpenPosition(self, orderbook, side):
-        price, qty = self.GetLimitOrderPair(orderbook, side)
-        if(qty > maxQty):
-            qty = maxQty
-        self.es.ModifyLimitOrder(exchangeA, symbol, side, qty, price)
+    def open_position(self, orderbook, side):
+        price, qty = self.get_limit_order_pair(orderbook, side)
+        if(qty > max_qty):
+            qty = max_qty
+        self.es.modify_limit_order(exchange_a, symbol, side, qty, price)
 
     # 根据orderbook数据进行平仓操作
-    def ClosePosition(self, orderbook):
+    def close_position(self, orderbook):
         position = market["position"]
         side = "sell" if position.execQty > 0 else "buy"
-        price, qty = self.GetClosePositionOrderPair(orderbook, side)
+        price, qty = self.get_close_position_order_pair(orderbook, side)
         if(qty > position.qty):
             qty = position.qty
-        self.es.Modifylimitorder(exchangeA, exchangeA,
+        self.es.modify_limit_order(exchange_a, exchange_a,
                                  symbol, side, qty, price)
 
     async def run(self):
         await self.es.initexchange()
-        await self.es.subscribeorderbook(exchangeB, symbol, self.OrderbookChangeHandler)
-        await self.es.subscribeposition(exchangeA, symbol, self.PositionChangeHandler)
-        await self.es.subscribeorderchange(exchangeA, symbol, self.OrderChangeHandler)
+        await self.es.subscribeorderbook(exchange_b, symbol, self.orderbook_change_handler)
+        await self.es.subscribeposition(exchange_a, symbol, self.position_change_handler)
+        await self.es.subscribeorderchange(exchange_a, symbol, self.order_change_handler)
 
-async def Run():
+async def run():
     strategy = Strategy()
     await strategy.run()
-asyncio.run(Run())
+asyncio.run(run())
