@@ -96,12 +96,10 @@ class Strategy(object):
     async def run(self):
         await self.es.initexchange()
         await self.es.subscribeorderbook(exchangeB, symbol, self.OrderbookChangeHandler)
-
+        await self.es.subscribeposition(exchangeA, symbol, self.PositionChangeHandler)
+        await self.es.subscribeorderchange(exchangeA, symbol, self.OrderChangeHandler)
 
 async def Run():
     strategy = Strategy()
     await strategy.run()
-    # self.es.subscribeposition(exchangeA, symbol, positionchangehandler)
-    # self.es.subscribeorderchange(exchangeA, symbol, orderchangehandler)
 asyncio.run(Run())
-# asyncio.get_event_loop().run_until_complete(run())
