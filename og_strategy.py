@@ -106,7 +106,7 @@ def run() -> None:
     # Try/except just keeps ctrl-c from printing an ugly stacktrace
     # bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)
     bitmex_mon.subscribe_data_callback('order',order_callback,lambda x:x)
-    bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
+    # bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
 
 
     try:
