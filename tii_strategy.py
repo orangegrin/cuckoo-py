@@ -61,6 +61,7 @@ def order_callback(data):
     for idata in data:
         pub_data.append( {
             "Exchange": exchange,
+            "OrderId":idata['orderID'],
             "MarketSymbol":tar_symbol,
             "Amount":idata.get('leavesQty',0),
             "Price":idata.get('price',None),
@@ -167,7 +168,36 @@ def run() -> None:
                 if current_position_amount>(MAX_POSITION*-1):
                     orders.append(bitmex_mon.prepare_order(data_cache['quote']['askPrice'],'Sell',MAX_POSITION-current_position_amount,'Limit'))
                 orders.append(bitmex_mon.prepare_order(data_cache['quote']['bidPrice'],'Buy',MAX_POSITION,'Limit'))
-            bitmex_mon.open_orders(orders)
+
+            tar_orders = []
+            amd_orders=[]
+            print("$$$$$$$$$$$$$$$$$$")
+            print(orders)
+            print(data_cache['order'])
+            print("$$$$$$$$$$$$$$$$$$")
+            if len(data_cache['order'])>0:
+                for hold_order in data_cache['order']:
+                    for o in orders:
+                        if o['price']==hold_order['price'] and o['orderQty']==hold_order['leavesQty'] and o['side'] == hold_order['side']:
+                            continue
+                        elif o['side'] == hold_order['side']:
+                            o['orderID']= hold_order['orderID']
+                            amd_orders.append(o)
+                        else:
+                            tar_orders.append(o)
+            else:
+                tar_orders=orders
+            
+            print("!!!!!!!!!!!!!!!!!!")
+            print(tar_orders)
+            print("##################")
+            print("!!!!!!!!!!!!!!!!!!")
+            print(amd_orders)
+            print("##################")
+            if tar_orders:
+                bitmex_mon.open_orders(tar_orders)
+            if amd_orders:
+                bitmex_mon.amend_orders(amd_orders)
             time.sleep(1)
     except (KeyboardInterrupt, SystemExit):
         sys.exit()

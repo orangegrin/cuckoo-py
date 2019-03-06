@@ -41,20 +41,15 @@ class BitMexMon(object):
         """
         place multi orders also can place signal one
         orders : [{}...] array type
-
         """
-        tar_orders = []
-        print("##################")
-        print(orders)
-        print("##################")
-        for hold_order in self.bitmex.ws.data['order']:
-            [False if o['price']==hold_order['price'] and o['orderQty']==hold_order['leavesQty'] and o['side'] == hold_order['side'] else tar_orders.append(o) for o in orders]
-        print("##################")
-        print(tar_orders)
-        print("##################")
-        if not tar_orders:
-            return None
-        return self.bitmex.create_bulk_orders(tar_orders)
+        return self.bitmex.create_bulk_orders(orders)
+    
+    def amend_orders(self,orders):
+        """
+        place multi orders also can place signal one
+        orders : [{}...] array type
+        """
+        return self.bitmex.amend_bulk_orders(orders)
     
     def cancel_orders(self,orderIDs,cancel_all=False):
         """

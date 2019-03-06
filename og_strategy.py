@@ -64,6 +64,7 @@ def order_callback(data):
     for idata in data:
         pub_data.append( {
             "Exchange": exchange,
+            "OrderId":idata['orderID'],
             "MarketSymbol":tar_symbol,
             "Amount":idata.get('leavesQty',None),
             "Price":idata.get('price',None),
