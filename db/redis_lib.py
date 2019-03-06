@@ -8,16 +8,16 @@ class RedisLib(object):
         self.config.read('config.ini')
         self.env = self.config.get('env', 'env')
 
-    def setChannelName(self, channel):
-        newChannel = self.env + "." + channel
-        return newChannel
+    def set_channel_name(self, channel):
+        new_channel = self.env + "." + channel
+        return new_channel
 
     def setKeyName(self, name):
-        newName = self.env + "." + name
-        return newName
+        new_name = self.env + "." + name
+        return new_name
 
     # ascending 为True 为从小到大
-    def ResampleOrderbooks(self,pricePairs, samplingRate, ascending):
+    def resample_orderbooks(self,pricePairs, samplingRate, ascending):
         ary = np.array(pricePairs).T
         prices = ary[0]
         qtys = ary[1]

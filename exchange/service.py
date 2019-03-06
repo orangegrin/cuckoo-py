@@ -1,31 +1,32 @@
 import asyncio
-import aioredis
-from RedisLib import RedisLib
+import db.aredis as aredis
+from db.redis_lib import RedisLib
+
 
 class ExchangeService:
     def __init__(self):
         self.redislib = RedisLib()
 
-    async def subscribeorderbook(self, exchangeName, symbol, strategy_callback):
-        channel = "OrderBookChange"+"."+exchangeName+"."+symbol
-        channel = self.redislib.setChannelName(channel)
+    async def subscribe_orderbook(self, exchange_name, symbol, strategy_callback):
+        channel = "OrderBookChange"+"."+exchange_name+"."+symbol
+        channel = self.redislib.set_channel_name(channel)
 
         await self.subscribe(channel, callback=strategy_callback)
 
-    def subscribeposition(self, exchangeName, symbol, callback):
+    def subscribe_position(self, exchange_name, symbol, callback):
         NotImplementedError("subscribeorderbook")
 
-    def subscribeorderchange(self, exchangeName, symbol, callback):
+    def subscribe_order_change(self, exchange_name, symbol, callback):
         NotImplementedError("subscribeorderbook")
 
-    def ModifyLimitOrder(self, exchangeName, symbol, side, qty, price):
+    def modify_limit_order(self, exchange_name, symbol, side, qty, price):
         NotImplementedError("openlimitorder")
 
-    def OpenMarketOrder(self, exchangeName, symbol, side, qty):
+    def open_market_order(self, exchange_name, symbol, side, qty):
         NotImplementedError("openmarketorder")
 
     # 获取平台标准价差
-    def GetStandardDev(self, exchangeNameA, exchangeNameB, symbol, period, size):
+    def get_standard_dev(self, exchange_name_a, exchange_name_b, symbol_a, symbol_b, period, size):
         return 0
         # NotImplementedError("getstandarddev"
 
@@ -33,7 +34,7 @@ class ExchangeService:
         NotImplementedError("getstandarddev")
 
     async def initexchange(self):
-        self.redis = await aioredis.create_redis('redis://localhost')
+        self.redis = await aredis.create_redis('redis://localhost')
 
     async def subscribe(self, channel, callback):
         res = await self.redis.subscribe(channel)
