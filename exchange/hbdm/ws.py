@@ -6,7 +6,7 @@ import time
 import json
 import redis
 import configparser
-from RedisLib import RedisLib
+from db.redis_lib import RedisLib
 
 if __name__ == '__main__':
     while(1):
