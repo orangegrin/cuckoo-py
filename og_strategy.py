@@ -46,7 +46,7 @@ def orderBookL2_callback(data):
     }
     pubdata_json = json.dumps(pubData)
     pprint.pprint(pubData)
-    res = redis_conn.publish(channel, pubdata_json)
+    redis_conn.publish(channel, pubdata_json)
 
 
 def run() -> None:
