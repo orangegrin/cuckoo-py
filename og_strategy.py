@@ -90,7 +90,7 @@ def redis_pub(channel,pub_data):
 
 
 def run() -> None:
-    bitmex_mon = BitMexMon(symbol,AuthSubTables=DefaultAuthSubTables,UnAuthSubTables=None)
+    bitmex_mon = BitMexMon(symbol)
 
     # Try/except just keeps ctrl-c from printing an ugly stacktrace
     # bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)

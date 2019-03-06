@@ -37,6 +37,7 @@ class BitMEXWebsocket():
         self.logger = logging.getLogger('root') if not logger else logger
         self.UnAuthSubTables = UnAuthSubTables if UnAuthSubTables else DefaultUnAuthSubTables
         self.AuthSubTables = AuthSubTables if AuthSubTables else DefaultAuthSubTables
+       
         # add subscrib call back
         self.sub_callback_dic={}
         
@@ -203,8 +204,8 @@ class BitMEXWebsocket():
         nonce = generate_expires()
         return [
             "api-expires: " + str(nonce),
-            "api-signature: " + generate_signature(settings.API_SECRET, 'GET', '/realtime', nonce, ''),
-            "api-key:" + settings.API_KEY
+            "api-signature: " + generate_signature(settings.BITMEX_API_SECRET, 'GET', '/realtime', nonce, ''),
+            "api-key:" + settings.BITMEX_API_KEY
         ]
 
     def __wait_for_account(self):
@@ -331,7 +332,7 @@ class BitMEXWebsocket():
         self.logger.info('Websocket Closed')
         self.exit()
 
-    def __on_error(self, ws, error):
+    def __on_error(self, error):
         if not self.exited:
             self.error(error)
 
