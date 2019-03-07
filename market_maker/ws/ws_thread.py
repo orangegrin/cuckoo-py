@@ -313,7 +313,7 @@ class BitMEXWebsocket():
                 if table=='orderBookL2':
                     pass
                 elif table=='order':
-                    tar_data=[x for x in tar_data if x['workingIndicator']]
+                    tar_data=[o for o in tar_data if o['workingIndicator'] and o['leavesQty']>0 ]
                     pass
                 elif table=='position':
                     pass

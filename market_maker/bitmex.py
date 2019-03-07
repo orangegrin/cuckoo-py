@@ -174,12 +174,14 @@ class BitMEX(object):
     @authentication_required
     def create_bulk_orders(self, orders):
         """Create multiple orders."""
+        tar_orders = []
         for order in orders:
             order['clOrdID'] = self.orderIDPrefix + base64.b64encode(uuid.uuid4().bytes).decode('utf8').rstrip('=\n')
             order['symbol'] = self.symbol
-            if self.postOnly and order.get('ordType',None)=='Limit' and order.get('execInst',None) :
+            if self.postOnly and order.get('ordType',None)=='Limit'  :#and order.get('execInst',None)
                 order['execInst'] = 'ParticipateDoNotInitiate'
-        return self._curl_bitmex(path='order/bulk', postdict={'orders': orders}, verb='POST')
+            tar_orders.append(order)
+        return self._curl_bitmex(path='order/bulk', postdict={'orders': tar_orders}, verb='POST')
 
     @authentication_required
     def open_orders(self):
