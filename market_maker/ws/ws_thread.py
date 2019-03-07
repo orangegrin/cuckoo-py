@@ -320,14 +320,8 @@ class BitMEXWebsocket():
                 #formate data by require
                 tar_data = callback['dataformat_fun'](tar_data)
                 #call main routine callback function
-                if tar_data:
-                    callback['callback_fun'](tar_data)
-
-            import pprint
-            print("^^^^^^^^^^^^^^^^^^^^^^^")
-            pprint.pprint(self.data.get('order',None))    
-            print("^^^^^^^^^^^^^^^^^^^^^^^")
-
+                # if tar_data:
+                callback['callback_fun'](tar_data)
         except:
             self.logger.error(traceback.format_exc())
 

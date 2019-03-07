@@ -174,7 +174,6 @@ def run() -> None:
             amd_orders=[]
             print("$$$$$$$$$$$$$$$$$$")
             print(orders)
-            print(data_cache.get('order',[]))
             print("$$$$$$$$$$$$$$$$$$")
             if len(data_cache.get('order',[]))>0:
                 for o in orders:
