@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 class IExchangeAPI(metaclass=ABCMeta):
     @abstractmethod
-    def open_market_order(self, market_symbol, side, price, amount):
+    def open_market_order(self, market_symbol, side, amount):
         pass
     @abstractmethod
     def open_limit_order(self, market_symbol, side, price, amount):
