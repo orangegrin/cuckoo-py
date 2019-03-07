@@ -26,7 +26,7 @@ class ExchangeService:
         NotImplementedError("openmarketorder")
 
     # 获取平台标准价差
-    def get_standard_dev(self, exchange_name_a, exchange_name_b, symbol_a, symbol_b, period, size):
+    def get_standard_dev(self, exchange_name_a, exchange_name_b, symbol_a, symbol_b, period, length):
         return 0
         # NotImplementedError("getstandarddev"
 

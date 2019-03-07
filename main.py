@@ -54,7 +54,7 @@ class Strategy(object):
         fees = (a_fees * orderbook.bid1.price) + \
             (b_fess * orderbook.bid1.price)
         standarddev = self.es.get_standard_dev(
-            exchange_a, exchange_b, symbol_a, "Min", 60)
+            exchange_a, exchange_b, symbol_a,symbol_b, "Min", 60)
         if(side == "sell"):
             price = orderbook.bid1.price * \
                 (min_rate + 1) + fees * 2 + standarddev
