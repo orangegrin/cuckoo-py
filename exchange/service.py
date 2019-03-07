@@ -14,11 +14,15 @@ class ExchangeService:
 
         await self.subscribe(channel, callback=callback)
 
-    def subscribe_position(self, exchangename, symbol, callback):
-        NotImplementedError("subscribeorderbook")
+    async def subscribe_position(self, exchangename, symbol, callback):
+        channel = "PositionChange"+"."+exchangename+"."+symbol
+        channel = self.redislib.set_channel_name(channel)
+        await self.subscribe(channel, callback=callback)
 
-    def subscribe_order_change(self, exchangename, symbol, callback):
-        NotImplementedError("subscribeorderbook")
+    async def subscribe_order_change(self, exchangename, symbol, callback):
+        channel = "OrderChange"+"."+exchangename+"."+symbol
+        channel = self.redislib.set_channel_name(channel)
+        await self.subscribe(channel, callback=callback)
 
     def modify_limit_order(self, exchangename, symbol, side, qty, price):
         self.exchanges[exchangename].open_limit_order(symbol, side, qty, price)
