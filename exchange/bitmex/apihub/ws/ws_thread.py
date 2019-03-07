@@ -7,10 +7,10 @@ from time import sleep
 import json
 import decimal
 import logging
-from market_maker.settings import settings
-from market_maker.auth.APIKeyAuth import generate_expires, generate_signature
-from market_maker.utils.log import setup_custom_logger
-from market_maker.utils.math import toNearest
+from ..settings import settings
+from ..auth.APIKeyAuth import generate_expires, generate_signature
+from ..utils.log import setup_custom_logger
+from ..utils.math import toNearest
 from future.utils import iteritems
 from future.standard_library import hooks
 with hooks():  # Python 2/3 compat
@@ -61,7 +61,7 @@ class BitMEXWebsocket():
         self.logger.debug("Connecting WebSocket.")
         self.symbol = symbol
         self.shouldAuth = shouldAuth
-
+        
         # We can subscribe right in the connection querystring, so let's build that.
         # Subscribe to all pertinent endpoints
         subscriptions = [sub + ':' + symbol for sub in self.UnAuthSubTables]
@@ -69,7 +69,7 @@ class BitMEXWebsocket():
         if self.shouldAuth:
             subscriptions += [sub + ':' + symbol for sub in self.AuthSubTables]
             subscriptions += ["margin"]
-
+ 
         # Get WS URL and connect.
         urlParts = list(urlparse(endpoint))
         urlParts[0] = urlParts[0].replace('http', 'ws')
@@ -175,7 +175,7 @@ class BitMEXWebsocket():
                                          header=self.__get_auth()
                                          )
 
-        setup_custom_logger('websocket', log_level=settings.LOG_LEVEL)
+        setup_custom_logger('websocket', log_level=settings.getint('log','level'))
         self.wst = threading.Thread(target=lambda: self.ws.run_forever(sslopt=sslopt_ca_certs))
         self.wst.daemon = True
         self.wst.start()
@@ -204,8 +204,8 @@ class BitMEXWebsocket():
         nonce = generate_expires()
         return [
             "api-expires: " + str(nonce),
-            "api-signature: " + generate_signature(settings.BITMEX_API_SECRET, 'GET', '/realtime', nonce, ''),
-            "api-key:" + settings.BITMEX_API_KEY
+            "api-signature: " + generate_signature(settings.get('bitmex','api_secert'), 'GET', '/realtime', nonce, ''),
+            "api-key:" + settings.get('bitmex','api_key')
         ]
 
     def __wait_for_account(self):

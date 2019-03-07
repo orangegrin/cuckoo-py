@@ -7,9 +7,9 @@ import json
 import base64
 import uuid
 import logging
-from market_maker.auth import APIKeyAuthWithExpires
-from market_maker.utils import constants, errors
-from market_maker.ws.ws_thread import BitMEXWebsocket
+from .auth import APIKeyAuthWithExpires
+from .utils import constants, errors
+from .ws.ws_thread import BitMEXWebsocket
 
 
 # https://www.bitmex.com/api/explorer/
@@ -18,7 +18,7 @@ class BitMEX(object):
     """BitMEX API Connector."""
 
     def __init__(self, base_url=None, symbol=None, apiKey=None, apiSecret=None,
-                 orderIDPrefix='mm_bitmex_', shouldWSAuth=True, postOnly=False, timeout=7,AuthSubTables=None,UnAuthSubTables=None):
+                 orderIDPrefix='mm_bitmex_', shouldWSAuth=True, postOnly=False, timeout=7,AuthSubTables=None,UnAuthSubTables=None,RestOnly=False):
         """Init connector."""
         self.logger = logging.getLogger('root')
         self.base_url = base_url
@@ -31,7 +31,7 @@ class BitMEX(object):
         self.apiKey = apiKey
         self.apiSecret = apiSecret
         if len(orderIDPrefix) > 13:
-            raise ValueError("settings.ORDERID_PREFIX must be at most 13 characters long!")
+            raise ValueError("settings.get('bitmex','orde_id_prefix') must be at most 13 characters long!")
         self.orderIDPrefix = orderIDPrefix
         self.retries = 0  # initialize counter
 
@@ -43,9 +43,11 @@ class BitMEX(object):
         self.session.headers.update({'accept': 'application/json'})
 
         # Create websocket for streaming data
-        self.ws = BitMEXWebsocket(logger=self.logger,AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables)
-        self.ws.connect(base_url, symbol, shouldAuth=shouldWSAuth)
-
+        if not RestOnly:
+            self.ws = BitMEXWebsocket(logger=self.logger,AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables)
+            self.ws.connect(base_url, symbol, shouldAuth=shouldWSAuth)
+        else:
+            self.ws = None
         self.timeout = timeout
 
     def set_websocket_callback(self,sub_callback_dic):

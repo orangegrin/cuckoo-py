@@ -1,8 +1,9 @@
 import sys
 from time import sleep
-from market_maker import bitmex
-from market_maker.settings import settings
-from market_maker.utils import log, constants, errors, math
+from .apihub import bitmex
+from .settings import settings
+from .apihub.utils import log, constants, errors, math
+
 
 OrderSide = {'buy':'Buy','sell':'Sell'}
 OrderType = {'limit':'Limit','market':'Market'}
@@ -14,16 +15,18 @@ class BitMexMon(object):
 
     def __init__(self,symbol,AuthSubTables=None,UnAuthSubTables=None):
         """ Init bitmex api obj """
+        # str(settings.get('bitmex','api_url'))
         self.symbol = symbol
         self.bitmex = bitmex.BitMEX(
-            base_url=settings.BITMEX_BASE_URL, symbol=self.symbol,
-            apiKey=settings.BITMEX_API_KEY, apiSecret=settings.BITMEX_API_SECRET,
-            orderIDPrefix=settings.ORDERID_PREFIX, postOnly=settings.POST_ONLY,
-            timeout=settings.TIMEOUT,AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables
+            base_url=settings.get('bitmex','api_url'), symbol=self.symbol,
+            apiKey=settings.get('bitmex','api_key'), apiSecret=settings.get('bitmex','api_secert'),
+            orderIDPrefix=settings.get('bitmex','orde_id_prefix'), postOnly=settings.getboolean('bitmex','post_only'),
+            timeout=settings.getint('bitmex','timeout'),AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables,
+            RestOnly=False
         )
 
     
-    def prepare_order(self,price,isBuy,orderQty,ordType):
+    def prepare_order(self,price,side,orderQty,ordType):
         """
         prepare order , may add some check
         """
@@ -59,10 +62,10 @@ class BitMexMon(object):
         while True:
             try:
                 self.bitmex.cancel(orderIDs,cancel_all=cancel_all)
-                sleep(settings.API_REST_INTERVAL)
+                sleep(settings.getfloat('bitmex','api_rest_interval'))
             except ValueError as e:
                 logger.info(e)
-                sleep(settings.API_ERROR_INTERVAL)
+                sleep(settings.getfloat('bitmex','api_error_interval'))
             else:
                 break
         

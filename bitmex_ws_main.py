@@ -1,12 +1,13 @@
 
+
 import time
 import sys
 import traceback
 import redis
 import pprint
 import json
-from RedisLib import RedisLib
-from market_maker.bitmex_mon_api import BitMexMon 
+from db.redis_lib import RedisLib
+from exchange.bitmex.bitmex_mon_api import BitMexMon 
 
 redis_conn = redis.Redis(host='localhost', port=6379)
 rsLib = RedisLib()
@@ -35,9 +36,9 @@ def orderBookL2_callback(data):
             asks.append([iorder['price'],iorder['size']])
     
     tar_symbol = symbol_ch_dict[exchange][symbol]
-    channel = rsLib.setChannelName("OrderBookChange."+exchange+"."+tar_symbol)
-    bids = rsLib.ResampleOrderbooks(bids,0.5,False)
-    asks = rsLib.ResampleOrderbooks(asks,0.5,True)
+    channel = rsLib.set_channel_name("OrderBookChange."+exchange+"."+tar_symbol)
+    bids = rsLib.resample_orderbooks(bids,0.5,False)
+    asks = rsLib.resample_orderbooks(asks,0.5,True)
     updateUtc = int(time.time()*1000)
     pub_data = {
         "Exchange": exchange,
@@ -94,7 +95,7 @@ def position_callback(data):
     }
     if data_cache.get('position',{})!=current_position:
         data_cache['position']=current_position
-        channel = rsLib.setChannelName("PositionChange."+exchange+"."+tar_symbol)
+        channel = rsLib.set_channel_name("PositionChange."+exchange+"."+tar_symbol)
         try:
             pub_data ={
                 "Exchange":exchange,
@@ -174,6 +175,7 @@ def run() -> None:
             amd_orders=[]
             print("$$$$$$$$$$$$$$$$$$")
             print(orders)
+            print(data_cache.get('order',[]))
             print("$$$$$$$$$$$$$$$$$$")
             if len(data_cache.get('order',[]))>0:
                 for o in orders:

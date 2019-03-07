@@ -6,7 +6,7 @@ import redis
 import pprint
 import json
 from RedisLib import RedisLib
-from market_maker.bitmex_mon_api import BitMexMon 
+from .bitmex_mon_api import BitMexMon 
 
 redis_conn = redis.Redis(host='localhost', port=6379)
 rsLib = RedisLib()
