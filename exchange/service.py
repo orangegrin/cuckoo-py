@@ -22,7 +22,7 @@ class ExchangeService:
 
     def modify_limit_order(self, exchangename, symbol, side, qty, price):
         self.exchanges[exchangename].open_limit_order(symbol, side, qty, price)
-        NotImplementedError("openlimitorder")
+        # NotImplementedError("openlimitorder")
 
     # buy_orders = []
     # sell_orders = []
@@ -31,11 +31,11 @@ class ExchangeService:
     # sell_orders.append({'price': 1001.0, 'orderQty': 100, 'side': "Sell"})
     def converge_orders(self,exchangename,symbol,buy_orders, sell_orders):
         self.exchanges[exchangename].converge_orders(symbol,buy_orders, sell_orders)
-        pass
+        
 
     def open_market_order(self, exchangename, symbol, side, qty):
         self.exchanges[exchangename].open_market_order(symbol, side, qty)
-        NotImplementedError("openmarketorder")
+        # NotImplementedError("openmarketorder")
 
     # 获取平台标准价差
     def get_standard_dev(self, exchangenamea, exchangenameb, symbola, symbolb, periodfreq, timeperiod):
