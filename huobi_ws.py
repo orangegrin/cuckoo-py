@@ -28,7 +28,7 @@ if __name__ == '__main__':
     config.read('config.ini')
     rsLib = RedisLib()
     exchange = "huobi"
-    symbol = "BTC_USD"
+    symbol = "BTC_CW"
 
     redis_conn = redis.Redis(host='localhost', port=6379)
 
