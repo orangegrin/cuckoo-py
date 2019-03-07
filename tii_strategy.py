@@ -66,7 +66,7 @@ def order_callback(data):
             "Amount":idata.get('leavesQty',0),
             "Price":idata.get('price',None),
             "StopPrice":None,
-            "IsBuy":True if idata.get('side',None)=="Buy" else False,
+            "side":idata.get('side',None),
             "IsMargin":None,
             "ShouldRoundAmount":None,
             "OrderType":idata.get('ordType',None),
@@ -179,10 +179,10 @@ def run() -> None:
                 for o in orders:
                     order_cate = 2
                     for hold_order in data_cache['order']:
-                        if o['price']==hold_order['Price'] and o['orderQty']==hold_order['Amount'] and o['side'] == "Buy" if hold_order['IsBuy'] else "Sell":
+                        if o['price']==hold_order['Price'] and o['orderQty']==hold_order['Amount'] and o['side'] == hold_order['side']:
                             order_cate=1
                             break
-                        elif o['side'] == "Buy" if hold_order['IsBuy'] else "Sell":
+                        elif o['side'] == hold_order['side']:
                             o['orderID']= hold_order['OrderId']
                             order_cate=0
                             break
