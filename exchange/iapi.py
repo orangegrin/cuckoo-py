@@ -4,15 +4,15 @@ class ExchangeAPI(object):
     def __init__(self):
         pass
         
-    def OpenMarketOrder(self,MarketSymbol,Side,Price,Amount):
+    def open_market_order(self,market_symbal,side,price,amount):
         pass
 
-    def OpenLimitOrder(self,MarketSymbol,Side,Price,Amount):
+    def open_limit_order(self,market_symbal,side,price,amount):
         pass
 
-    def ModifyOrder(self,MarketSymbol,OrderId,Price,Amount):
+    def modify_order(self,order_id,price,amount):
         pass
 
-    def CancelOrder(self,OrderId):
+    def cancel_order(self,order_id):
         pass
 

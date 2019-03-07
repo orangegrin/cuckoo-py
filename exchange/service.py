@@ -44,5 +44,5 @@ class ExchangeService:
         while (await ch.wait_message()):
             print("on reader")
             data = await ch.get_json()
-            ch_name = ch.name.decode('utf-8')
+            # ch_name = ch.name.decode('utf-8')
             callback(data)
