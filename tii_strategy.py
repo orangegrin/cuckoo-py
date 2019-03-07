@@ -173,13 +173,13 @@ def run() -> None:
             amd_orders=[]
             print("$$$$$$$$$$$$$$$$$$")
             print(orders)
-            print(data_cache['order'])
+            print(data_cache.get('order',[]))
             print("$$$$$$$$$$$$$$$$$$")
-            if len(data_cache['order'])>0:
-                for hold_order in data_cache['order']:
-                    for o in orders:
+            if len(data_cache.get('order',[]))>0:
+                for o in orders:
+                    for hold_order in data_cache['order']:
                         if o['price']==hold_order['price'] and o['orderQty']==hold_order['leavesQty'] and o['side'] == hold_order['side']:
-                            continue
+                            break
                         elif o['side'] == hold_order['side']:
                             o['orderID']= hold_order['orderID']
                             amd_orders.append(o)
