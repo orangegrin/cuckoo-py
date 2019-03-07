@@ -8,6 +8,7 @@ import pprint
 import json
 from db.redis_lib import RedisLib
 from exchange.bitmex.bitmex_mon_api import BitMexMon 
+from exchange import enums
 
 redis_conn = redis.Redis(host='localhost', port=6379)
 rsLib = RedisLib()
@@ -16,7 +17,7 @@ symbol='XBTUSD'
 symbol_ch_dict={"bitmex":{"XBTUSD":"BTCUSD"}}
 data_cache={}
 
-DefaultUnAuthSubTables=["quote"]
+DefaultUnAuthSubTables=["orderBookL2","quote"]
 # DefaultUnAuthSubTables=["orderBookL2"]
 DefaultAuthSubTables=["order", "position"]
 
@@ -41,12 +42,12 @@ def orderBookL2_callback(data):
     asks = rsLib.resample_orderbooks(asks,0.5,True)
     updateUtc = int(time.time()*1000)
     pub_data = {
-        "Exchange": exchange,
-        "SequenceId":  str(updateUtc),
-        "MarketSymbol": tar_symbol,
-        "LastUpdatedUtc": updateUtc,
-        "Asks": asks,
-        "Bids": bids
+        "exchange": exchange,
+        "sequenceId":  str(updateUtc),
+        "marketSymbol": tar_symbol,
+        "lastUpdatedUtc": updateUtc,
+        "asks": asks,
+        "bids": bids
     }
     redis_pub(channel,pub_data)
     pprint.pprint(pub_data)
@@ -56,22 +57,19 @@ def order_callback(data):
     #[[price,qty]...]
     
     tar_symbol = symbol_ch_dict[exchange][symbol]
-    channel = rsLib.setChannelName("OrderChange."+exchange+"."+tar_symbol)
+    channel = rsLib.set_channel_name("OrderChange."+exchange+"."+tar_symbol)
     
     pub_data=[]
     for idata in data:
-        pub_data.append( {
-            "Exchange": exchange,
-            "OrderId":idata['orderID'],
-            "MarketSymbol":tar_symbol,
-            "Amount":idata.get('leavesQty',0),
-            "Price":idata.get('price',None),
-            "StopPrice":None,
-            "IsBuy":True if idata.get('side',None)=="Buy" else False,
-            "IsMargin":None,
-            "ShouldRoundAmount":None,
-            "OrderType":idata.get('ordType',None),
-            "ExtraParameters":None
+        pub_data.append({
+            "exchange": exchange,
+            "orderId":idata['orderID'],
+            "marketSymbol":tar_symbol,
+            "qty":idata.get('leavesQty',0),
+            "price":idata.get('price',0),
+            "side":enums.Side.Buy.value if idata['side']=="Buy" else enums.Side.Sell.value,
+            "orderType": enums.OrderType.Limit.value if idata['ordType'] == 'Limit' else enums.OrderType.Market.value,
+            "extraParameters":""
         })
     data_cache['order']=pub_data
     redis_pub(channel,pub_data)
@@ -80,41 +78,27 @@ def order_callback(data):
 def position_callback(data):
     print("In position handle!!")
     tar_symbol = symbol_ch_dict[exchange][symbol]
-    
-    current_position={
-        "Exchange":exchange,
-        "MarketSymbol":tar_symbol,
-        "Amount":data[0].get('currentQty',None),
-        "Total":0,
-        "ProfitLoss":data[0].get('unrealisedPnl',None),
-        "LendingFees":0,
-        "Type":0,
-        "BasePrice":data[0].get('avgEntryPrice',None),
-        "LiquidationPrice":data[0].get('liquidationPrice',None),
-        "Leverage":data[0].get('leverage',None)
-    }
-    if data_cache.get('position',{})!=current_position:
-        data_cache['position']=current_position
-        channel = rsLib.set_channel_name("PositionChange."+exchange+"."+tar_symbol)
-        try:
-            pub_data ={
-                "Exchange":exchange,
-                "MarketSymbol":tar_symbol,
-                "Amount":data[0].get('currentQty',None),
-                "Total":0,
-                "ProfitLoss":data[0].get('unrealisedPnl',None),
-                "LendingFees":0,
-                "Type":0,
-                "BasePrice":data[0].get('avgEntryPrice',None),
-                "LiquidationPrice":data[0].get('liquidationPrice',None),
-                "Leverage":data[0].get('leverage',None)
-            }
-            
-            redis_pub(channel,pub_data)
-            pprint.pprint(data_cache)
-        except Exception as e:
-            pprint.pprint(traceback.format_exc())
-            pprint.pprint(data)
+    print(data[0])
+    if data[0]:
+        pub_data ={
+                    "exchange":exchange,
+                    "marketSymbol":tar_symbol,
+                    "qty":data[0]['currentQty'],
+                    "total":0,
+                    "profitLoss":data[0]['unrealisedPnl'],
+                    "lendingFees":0,
+                    "basePrice":data[0]['avgEntryPrice'],
+                    "liquidationPrice":data[0]['liquidationPrice'],
+                }
+        if data_cache.get('position',{})!=pub_data:
+            data_cache['position']=pub_data
+            channel = rsLib.set_channel_name("PositionChange."+exchange+"."+tar_symbol)
+            try:
+                redis_pub(channel,pub_data)
+                pprint.pprint(data_cache)
+            except Exception as e:
+                pprint.pprint(traceback.format_exc())
+                pprint.pprint(data)
             
 
 def quote_callback(data):
@@ -185,7 +169,7 @@ def run() -> None:
                             order_cate=1
                             break
                         elif o['side'] == "Buy" if hold_order['IsBuy'] else "Sell":
-                            o['orderID']= hold_order['OrderId']
+                            o['orderID']= hold_order['orderId']
                             order_cate=0
                             break
 
@@ -210,8 +194,27 @@ def run() -> None:
     except (KeyboardInterrupt, SystemExit):
         sys.exit()
 
+def main() -> None:
+    bitmex_mon = BitMexMon(symbol,UnAuthSubTables=DefaultUnAuthSubTables,AuthSubTables=DefaultAuthSubTables)
+    bitmex_mon.cancel_orders([],cancel_all=True)
+    # position_callback([bitmex_mon.get_position()])
+    
+    pprint.pprint(data_cache)
+    # return None
+    # Try/except just keeps ctrl-c from printing an ugly stacktrace
+    bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)
+    bitmex_mon.subscribe_data_callback('order',order_callback,lambda x:x)
+    # bitmex_mon.subscribe_data_callback('quote',quote_callback,lambda x:x)
+    bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
+    try:
+        while True:
+            time.sleep(3)
+    except (KeyboardInterrupt, SystemExit):
+        sys.exit()
+
 if __name__ == "__main__":
 
-    run()
+    # run()
+    main()
 
     
