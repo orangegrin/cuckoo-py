@@ -15,7 +15,7 @@ DefaultAuthSubTables=["order", "position"]
 
 class BitMexMon(object):
 
-    def __init__(self,symbol,AuthSubTables=DefaultAuthSubTables,UnAuthSubTables=DefaultUnAuthSubTables):
+    def __init__(self,symbol,AuthSubTables=DefaultAuthSubTables,UnAuthSubTables=DefaultUnAuthSubTables,RestOnly=False):
         """ Init bitmex api obj """
         # str(settings.get('bitmex','api_url'))
         self.symbol = symbol
@@ -24,7 +24,7 @@ class BitMexMon(object):
             apiKey=settings.get('bitmex','api_key'), apiSecret=settings.get('bitmex','api_secert'),
             orderIDPrefix=settings.get('bitmex','orde_id_prefix'), postOnly=settings.getboolean('bitmex','post_only'),
             timeout=settings.getint('bitmex','timeout'),AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables,
-            RestOnly=False
+            RestOnly=RestOnly
         )
 
     

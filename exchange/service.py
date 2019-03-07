@@ -6,7 +6,7 @@ from .bitmex.bitmex_mon_api import BitMexMon
 class ExchangeService:
     def __init__(self):
         self.redislib = RedisLib()
-        self.exchanges = {'bitmex':BitMexMon(symbol='XBTUSD')}
+        self.exchanges = {'bitmex':BitMexMon(symbol='XBTUSD',RestOnly=True)}
 
     async def subscribe_orderbook(self, exchangename, symbol, callback):
         channel = "OrderBookChange"+"."+exchangename+"."+symbol
