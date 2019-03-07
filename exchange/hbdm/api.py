@@ -6,7 +6,7 @@ from service import HuobiDM
 
 import configparser
 
-class HuobiAPI(IExchangeAPI):                                        
+class HuobiAPI(object):                                        
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read('config.ini')
@@ -15,8 +15,8 @@ class HuobiAPI(IExchangeAPI):
         self.url = "https://api.huobi.pro/"
         self.dm = HuobiDM(self.url, self.access_key, self.secret_key)
 
-    def open_market_order(self,market_symbol,p_side,price,amount):
-        return self.open_order(market_symbol,p_side,price,amount,OrderType.Market)
+    def open_market_order(self,market_symbol,p_side,amount):
+        return self.open_order(market_symbol,p_side,'',amount,OrderType.Market)
 
     def open_limit_order(self,market_symbol,p_side,price,amount):
         return self.open_order(market_symbol,p_side,price,amount,OrderType.Limit)

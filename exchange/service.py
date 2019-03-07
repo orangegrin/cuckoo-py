@@ -2,11 +2,15 @@ import asyncio
 import db.aredis as aredis
 from db.redis_lib import RedisLib
 from .bitmex.bitmex_mon_api import BitMexMon
-
+from .hbdm.api import HuobiAPI
 class ExchangeService:
     def __init__(self):
         self.redislib = RedisLib()
-        self.exchanges = {'bitmex':BitMexMon(symbol='XBTUSD',RestOnly=True)}
+        self.exchanges = {
+            'bitmex':BitMexMon(symbol='XBTUSD',RestOnly=True),
+            'huobi': HuobiAPI()
+        }
+        
 
     async def subscribe_orderbook(self, exchangename, symbol, callback):
         channel = "OrderBookChange"+"."+exchangename+"."+symbol
