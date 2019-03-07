@@ -313,7 +313,7 @@ class BitMEXWebsocket():
                 if table=='orderBookL2':
                     pass
                 elif table=='order':
-                    tar_data=[o for o in tar_data if o['workingIndicator'] and o['leavesQty']>0 ]
+                    tar_data=[o for o in tar_data if o['workingIndicator'] ]
                     pass
                 elif table=='position':
                     pass
@@ -323,7 +323,10 @@ class BitMEXWebsocket():
                 if tar_data:
                     callback['callback_fun'](tar_data)
 
-                
+            import pprint
+            print("^^^^^^^^^^^^^^^^^^^^^^^")
+            pprint.pprint(self.data.get('order',None))    
+            print("^^^^^^^^^^^^^^^^^^^^^^^")
 
         except:
             self.logger.error(traceback.format_exc())
