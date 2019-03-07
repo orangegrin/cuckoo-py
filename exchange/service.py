@@ -7,26 +7,26 @@ class ExchangeService:
     def __init__(self):
         self.redislib = RedisLib()
 
-    async def subscribe_orderbook(self, exchange_name, symbol, strategy_callback):
-        channel = "OrderBookChange"+"."+exchange_name+"."+symbol
+    async def subscribe_orderbook(self, exchangename, symbol, callback):
+        channel = "OrderBookChange"+"."+exchangename+"."+symbol
         channel = self.redislib.set_channel_name(channel)
 
-        await self.subscribe(channel, callback=strategy_callback)
+        await self.subscribe(channel, callback=callback)
 
-    def subscribe_position(self, exchange_name, symbol, callback):
+    def subscribe_position(self, exchangename, symbol, callback):
         NotImplementedError("subscribeorderbook")
 
-    def subscribe_order_change(self, exchange_name, symbol, callback):
+    def subscribe_order_change(self, exchangename, symbol, callback):
         NotImplementedError("subscribeorderbook")
 
-    def modify_limit_order(self, exchange_name, symbol, side, qty, price):
+    def modify_limit_order(self, exchangename, symbol, side, qty, price):
         NotImplementedError("openlimitorder")
 
-    def open_market_order(self, exchange_name, symbol, side, qty):
+    def open_market_order(self, exchangename, symbol, side, qty):
         NotImplementedError("openmarketorder")
 
     # 获取平台标准价差
-    def get_standard_dev(self, exchange_name_a, exchange_name_b, symbol_a, symbol_b, period, length):
+    def get_standard_dev(self, exchangenamea, exchangenameb, symbola, symbolb, periodfreq, timeperiod):
         return 0
         # NotImplementedError("getstandarddev"
 
