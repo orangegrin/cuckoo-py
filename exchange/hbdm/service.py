@@ -4,7 +4,7 @@
 # @Author  : zhaobo
 # @github  : 
 
-from m_util import http_get_request, api_key_post
+from .m_util import http_get_request, api_key_post
 class HuobiDM:
 
     def __init__(self,url,access_key,secret_key):
@@ -215,7 +215,7 @@ class HuobiDM:
         备注：如果contract_code填了值，那就按照contract_code去下单，如果contract_code没有填值，则按照symbol+contract_type去下单。
         :
         """
-        
+
         params = {"price": price,
                   "volume": volume,
                   "direction": direction,
@@ -230,7 +230,8 @@ class HuobiDM:
             params['contract_code'] = contract_code
         if client_order_id:
             params['client_order_id'] = client_order_id
-    
+
+        print(params)
         request_path = '/api/v1/contract_order'
         return api_key_post(self.__url, request_path, params, self.__access_key, self.__secret_key)
     

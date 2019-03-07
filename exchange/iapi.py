@@ -22,3 +22,7 @@ class IExchangeAPI(metaclass=ABCMeta):
     @abstractmethod
     def cancel_order(self, order_id):
         pass
+
+    @abstractmethod
+    def close_market_order(self,market_symbol,order_id,amount,p_side):
+        pass
