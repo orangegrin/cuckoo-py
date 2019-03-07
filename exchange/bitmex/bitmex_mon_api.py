@@ -56,7 +56,7 @@ class BitMexMon(object):
     def open_market_order(self,symbol, side, qty):
         self.open_orders([self.prepare_order(None,OrderSideMap[side.value],qty,OrderTypeMap[OrderType.Limit.value])])
     
-    def converge_orders(self, symbol,buy_orders, sell_orders):
+    def converge_orders(self, symbol,I_buy_orders, I_sell_orders):
         """Converge the orders we currently have in the book with what we want to be in the book.
            This involves amending any open orders and creating new ones if any have filled completely.
            We start from the closest orders outward."""
@@ -68,7 +68,15 @@ class BitMexMon(object):
         buys_matched = 0
         sells_matched = 0
         existing_orders = self.bitmex.http_open_orders()
-
+        
+        buy_orders = [] 
+        for o in I_buy_orders:
+            o['side']=OrderSideMap[o['side'].value]
+            buy_orders.append(o)
+        sell_orders = [] 
+        for o in I_sell_orders:
+            o['side']=OrderSideMap[o['side'].value]
+            sell_orders.append(o)
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
         for order in existing_orders:
