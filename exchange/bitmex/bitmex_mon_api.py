@@ -1,19 +1,21 @@
-import sys
+import sys,requests
 from time import sleep
 from .apihub import bitmex
 from .settings import settings
 from .apihub.utils import log, constants, errors, math
+from ..enums import OrderType,Side
 
-
-OrderSide = {'buy':'Buy','sell':'Sell'}
-OrderType = {'limit':'Limit','market':'Market'}
+OrderSideMap = {Side.Buy.value:'Buy',Side.Sell.value:'Sell'}
+OrderTypeMap = {OrderType.Limit.value:'Limit',OrderType.Market.value:'Market'}
 logger = log.setup_custom_logger('root')
 
-
+DefaultUnAuthSubTables=["orderBookL2"]
+# DefaultUnAuthSubTables=["orderBookL2","quote"]
+DefaultAuthSubTables=["order", "position"]
 
 class BitMexMon(object):
 
-    def __init__(self,symbol,AuthSubTables=None,UnAuthSubTables=None):
+    def __init__(self,symbol,AuthSubTables=DefaultAuthSubTables,UnAuthSubTables=DefaultUnAuthSubTables):
         """ Init bitmex api obj """
         # str(settings.get('bitmex','api_url'))
         self.symbol = symbol
@@ -33,12 +35,106 @@ class BitMexMon(object):
         #if price > 0 and (
         # (orderQty >0 and side=='Buy') or (orderQty <0 and side=='Sell')
         # ) and (ordType=='Limit' or ordType=='Market')
-        return {
-                "ordType": ordType,
-                "orderQty": orderQty,
-                "price": price,
-                "side": side
-        }
+        if ordType=='Limit':
+            return {
+                    "ordType": ordType,
+                    "orderQty": orderQty,
+                    "price": price,
+                    "side": side
+            }
+        elif ordType=='Market':
+            return {
+                    "ordType": ordType,
+                    "orderQty": orderQty,
+                    "side": side
+            }
+        else:
+            raise ValueError("[prepare_order] ordType error!!!")
+
+    def open_limit_order(self,symbol, side, qty, price):
+        self.open_orders([self.prepare_order(price,OrderSideMap[side.value],qty,OrderTypeMap[OrderType.Limit.value])])
+
+    def open_market_order(self,symbol, side, qty):
+        self.open_orders([self.prepare_order(None,OrderSideMap[side.value],qty,OrderTypeMap[OrderType.Limit.value])])
+    
+    def converge_orders(self, symbol,buy_orders, sell_orders):
+        """Converge the orders we currently have in the book with what we want to be in the book.
+           This involves amending any open orders and creating new ones if any have filled completely.
+           We start from the closest orders outward."""
+
+        tickLog = 1
+        to_amend = []
+        to_create = []
+        to_cancel = []
+        buys_matched = 0
+        sells_matched = 0
+        existing_orders = self.bitmex.open_orders()
+
+        # Check all existing orders and match them up with what we want to place.
+        # If there's an open one, we might be able to amend it to fit what we want.
+        for order in existing_orders:
+            try:
+                if order['side'] == 'Buy':
+                    desired_order = buy_orders[buys_matched]
+                    buys_matched += 1
+                else:
+                    desired_order = sell_orders[sells_matched]
+                    sells_matched += 1
+
+                # Found an existing order. Do we need to amend it?
+                if desired_order['orderQty'] != order['leavesQty'] or desired_order['price'] != order['price'] :
+                    # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
+                    to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
+                                     'price': desired_order['price'], 'side': order['side']})
+            except IndexError:
+                # Will throw if there isn't a desired order to match. In that case, cancel it.
+                to_cancel.append(order)
+
+        while buys_matched < len(buy_orders):
+            to_create.append(buy_orders[buys_matched])
+            buys_matched += 1
+
+        while sells_matched < len(sell_orders):
+            to_create.append(sell_orders[sells_matched])
+            sells_matched += 1
+
+        if len(to_amend) > 0:
+            for amended_order in reversed(to_amend):
+                reference_order = [o for o in existing_orders if o['orderID'] == amended_order['orderID']][0]
+                logger.info("Amending %4s: %d @ %.*f to %d @ %.*f (%+.*f)" % (
+                    amended_order['side'],
+                    reference_order['leavesQty'], tickLog, reference_order['price'],
+                    (amended_order['orderQty'] - reference_order['cumQty']), tickLog, amended_order['price'],
+                    tickLog, (amended_order['price'] - reference_order['price'])
+                ))
+            # This can fail if an order has closed in the time we were processing.
+            # The API will send us `invalid ordStatus`, which means that the order's status (Filled/Canceled)
+            # made it not amendable.
+            # If that happens, we need to catch it and re-tick.
+            try:
+                self.bitmex.amend_bulk_orders(to_amend)
+            except requests.exceptions.HTTPError as e:
+                errorObj = e.response.json()
+                if errorObj['error']['message'] == 'Invalid ordStatus':
+                    logger.warn("Amending failed. Waiting for order data to converge and retrying.")
+                    sleep(0.5)
+                    return self.converge_orders([], [])
+                else:
+                    logger.error("Unknown error on amend: %s. Exiting" % errorObj)
+                    sys.exit(1)
+
+        if len(to_create) > 0:
+            logger.info("Creating %d orders:" % (len(to_create)))
+            for order in reversed(to_create):
+                logger.info("%4s %d @ %.*f" % (order['side'], order['orderQty'], tickLog, order['price']))
+            self.bitmex.create_bulk_orders(to_create)
+
+        # Could happen if we exceed a delta limit
+        if len(to_cancel) > 0:
+            logger.info("Canceling %d orders:" % (len(to_cancel)))
+            for order in reversed(to_cancel):
+                logger.info("%4s %d @ %.*f" % (order['side'], order['leavesQty'], tickLog, order['price']))
+            self.bitmex.cancel([order['orderID'] for order in to_cancel])
 
     def open_orders(self,orders):
         """

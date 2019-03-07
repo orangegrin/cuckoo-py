@@ -1,11 +1,12 @@
 import asyncio
 import db.aredis as aredis
 from db.redis_lib import RedisLib
-
+from .bitmex.bitmex_mon_api import BitMexMon
 
 class ExchangeService:
     def __init__(self):
         self.redislib = RedisLib()
+        self.exchanges = {'bitmex':BitMexMon(symbol='XBTUSD')}
 
     async def subscribe_orderbook(self, exchangename, symbol, callback):
         channel = "OrderBookChange"+"."+exchangename+"."+symbol
@@ -20,9 +21,20 @@ class ExchangeService:
         NotImplementedError("subscribeorderbook")
 
     def modify_limit_order(self, exchangename, symbol, side, qty, price):
+        self.exchanges[exchangename].open_limit_order(symbol, side, qty, price)
         NotImplementedError("openlimitorder")
 
+    # buy_orders = []
+    # sell_orders = []
+    # populate buy and sell orders, e.g.
+    # buy_orders.append({'price': 999.0, 'orderQty': 100, 'side': "Buy"})
+    # sell_orders.append({'price': 1001.0, 'orderQty': 100, 'side': "Sell"})
+    def converge_orders(self,exchangename,symbol,buy_orders, sell_orders):
+        self.exchanges[exchangename].converge_orders(symbol,buy_orders, sell_orders)
+        pass
+
     def open_market_order(self, exchangename, symbol, side, qty):
+        self.exchanges[exchangename].open_market_order(symbol, side, qty)
         NotImplementedError("openmarketorder")
 
     # 获取平台标准价差
