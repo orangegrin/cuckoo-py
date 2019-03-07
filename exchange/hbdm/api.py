@@ -1,12 +1,12 @@
 import sys
 sys.path.append('../')
-from exchange.iapi import ExchangeAPI
+from exchange.iapi import IExchangeAPI
 from exchange.enums import Side,OrderType,OrderResultType
 from service import HuobiDM
 
 import configparser
 
-class HuobiAPI(ExchangeAPI):
+class HuobiAPI(IExchangeAPI):                                        
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read('config.ini')

@@ -7,3 +7,4 @@ sftp-config.json
 /.vs/slnx.sqlite
 config.ini
 /.vscode
+/.vs/ProjectSettings.json
