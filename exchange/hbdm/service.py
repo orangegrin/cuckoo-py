@@ -4,8 +4,7 @@
 # @Author  : zhaobo
 # @github  : 
 
-from HuobiDMUtil import http_get_request, api_key_post
-
+from m_util import http_get_request, api_key_post
 class HuobiDM:
 
     def __init__(self,url,access_key,secret_key):

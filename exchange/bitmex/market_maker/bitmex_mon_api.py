@@ -23,7 +23,7 @@ class BitMexMon(object):
         )
 
     
-    def prepare_order(self,price,side,orderQty,ordType):
+    def prepare_order(self,price,isBuy,orderQty,ordType):
         """
         prepare order , may add some check
         """

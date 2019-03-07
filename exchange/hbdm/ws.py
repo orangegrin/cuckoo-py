@@ -6,7 +6,7 @@ import time
 import json
 import redis
 import configparser
-from RedisLib import RedisLib
+from db.redis_lib import RedisLib
 
 if __name__ == '__main__':
     while(1):
@@ -18,7 +18,7 @@ if __name__ == '__main__':
             time.sleep(5)
 
     # 订阅 Market Depth 数据
-    tradeStr_marketDepth="""
+    tradeStr_marketDepth = """
     {
         "sub": "market.BTC_CW.depth.step5", "id": "id1"
     }
@@ -36,15 +36,15 @@ if __name__ == '__main__':
     trade_id = ''
     price = 0
     while(1):
-        compressData=ws.recv()
-        result=gzip.decompress(compressData).decode('utf-8')
+        compressData = ws.recv()
+        result = gzip.decompress(compressData).decode('utf-8')
         if result[:7] == '{"ping"':
-            ts=result[8:21]
-            pong='{"pong":'+ts+'}'
+            ts = result[8:21]
+            pong = '{"pong":'+ts+'}'
             # print(pong)
             ws.send(pong)
             ws.send(tradeStr_marketDepth)
-            
+
         else:
             # try:
             data = json.loads(result)
@@ -53,9 +53,12 @@ if __name__ == '__main__':
                     continue
                 else:
                     trade_id = data['tick']['id']
-                    channel = rsLib.setChannelName("OrderBookChange."+exchange+"."+symbol)
-                    bids = rsLib.ResampleOrderbooks(data['tick']['bids'],0.5,False)
-                    asks = rsLib.ResampleOrderbooks(data['tick']['asks'],0.5,True)
+                    channel = rsLib.set_channel_name(
+                        "OrderBookChange."+exchange+"."+symbol)
+                    bids = rsLib.resample_orderbooks(
+                        data['tick']['bids'], 0.5, False)
+                    asks = rsLib.resample_orderbooks(
+                        data['tick']['asks'], 0.5, True)
 
                     pubData = {
                         "Exchange": exchange,
