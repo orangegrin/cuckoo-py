@@ -26,7 +26,6 @@ class BitMexMon(object):
             timeout=settings.getint('bitmex','timeout'),AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables,
             RestOnly=RestOnly
         )
-
     
     def prepare_order(self,price,side,orderQty,ordType):
         """
@@ -68,7 +67,7 @@ class BitMexMon(object):
         to_cancel = []
         buys_matched = 0
         sells_matched = 0
-        existing_orders = self.bitmex.open_orders()
+        existing_orders = self.bitmex.http_open_orders()
 
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
@@ -118,7 +117,7 @@ class BitMexMon(object):
                 if errorObj['error']['message'] == 'Invalid ordStatus':
                     logger.warn("Amending failed. Waiting for order data to converge and retrying.")
                     sleep(0.5)
-                    return self.converge_orders([], [])
+                    return self.converge_orders(symbol,[], [])
                 else:
                     logger.error("Unknown error on amend: %s. Exiting" % errorObj)
                     sys.exit(1)
@@ -191,6 +190,14 @@ class BitMexMon(object):
             order["price"]= price
         self.open_orders([order])
     
+    def set_leverage(self,symbol,leverage):
+        """
+        set a symbol's leverage
+        symbol: 'XBTUSD'
+        leverage: 100,50,25,10,5,3,1
+        """
+        self.bitmex.isolate_margin(symbol,leverage)
+
     def subscribe_data_callback(self,table_name,push_callback,format_func,args=[]):
         """
         table_name:'orderBookL2','order','position'...
