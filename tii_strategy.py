@@ -66,12 +66,13 @@ def order_callback(data):
             "Amount":idata.get('leavesQty',0),
             "Price":idata.get('price',None),
             "StopPrice":None,
-            "IsBuy":True if idata.get('side',None) else False,
+            "IsBuy":True if idata.get('side',None)=="Buy" else False,
             "IsMargin":None,
             "ShouldRoundAmount":None,
             "OrderType":idata.get('ordType',None),
             "ExtraParameters":None
         })
+    data_cache['order']=pub_data
     redis_pub(channel,pub_data)
     pprint.pprint(pub_data)
 
@@ -166,7 +167,7 @@ def run() -> None:
                 orders.append(bitmex_mon.prepare_order(data_cache['quote']['askPrice'],'Sell',MAX_POSITION,'Limit'))
             elif current_position_amount<0:
                 if current_position_amount>(MAX_POSITION*-1):
-                    orders.append(bitmex_mon.prepare_order(data_cache['quote']['askPrice'],'Sell',MAX_POSITION-current_position_amount,'Limit'))
+                    orders.append(bitmex_mon.prepare_order(data_cache['quote']['askPrice'],'Sell',MAX_POSITION+current_position_amount,'Limit'))
                 orders.append(bitmex_mon.prepare_order(data_cache['quote']['bidPrice'],'Buy',MAX_POSITION,'Limit'))
 
             tar_orders = []
@@ -177,14 +178,20 @@ def run() -> None:
             print("$$$$$$$$$$$$$$$$$$")
             if len(data_cache.get('order',[]))>0:
                 for o in orders:
+                    order_cate = 2
                     for hold_order in data_cache['order']:
-                        if o['price']==hold_order['price'] and o['orderQty']==hold_order['leavesQty'] and o['side'] == hold_order['side']:
+                        if o['price']==hold_order['Price'] and o['orderQty']==hold_order['Amount'] and o['side'] == "Buy" if hold_order['IsBuy'] else "Sell":
+                            order_cate=1
                             break
-                        elif o['side'] == hold_order['side']:
+                        elif o['side'] == "Buy" if hold_order['IsBuy'] else "Sell":
                             o['orderID']= hold_order['orderID']
-                            amd_orders.append(o)
-                        else:
-                            tar_orders.append(o)
+                            order_cate=0
+                            break
+
+                    if order_cate ==0:
+                        amd_orders.append(o)
+                    elif order_cate==2:
+                        tar_orders.append(o)
             else:
                 tar_orders=orders
             
