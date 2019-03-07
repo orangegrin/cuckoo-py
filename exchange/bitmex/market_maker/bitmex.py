@@ -18,7 +18,7 @@ class BitMEX(object):
     """BitMEX API Connector."""
 
     def __init__(self, base_url=None, symbol=None, apiKey=None, apiSecret=None,
-                 orderIDPrefix='mm_bitmex_', shouldWSAuth=True, postOnly=False, timeout=7):
+                 orderIDPrefix='mm_bitmex_', shouldWSAuth=True, postOnly=False, timeout=7,AuthSubTables=None,UnAuthSubTables=None):
         """Init connector."""
         self.logger = logging.getLogger('root')
         self.base_url = base_url
@@ -43,7 +43,7 @@ class BitMEX(object):
         self.session.headers.update({'accept': 'application/json'})
 
         # Create websocket for streaming data
-        self.ws = BitMEXWebsocket(logger=self.logger)
+        self.ws = BitMEXWebsocket(logger=self.logger,AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables)
         self.ws.connect(base_url, symbol, shouldAuth=shouldWSAuth)
 
         self.timeout = timeout
@@ -174,12 +174,14 @@ class BitMEX(object):
     @authentication_required
     def create_bulk_orders(self, orders):
         """Create multiple orders."""
+        tar_orders = []
         for order in orders:
             order['clOrdID'] = self.orderIDPrefix + base64.b64encode(uuid.uuid4().bytes).decode('utf8').rstrip('=\n')
             order['symbol'] = self.symbol
-            if self.postOnly and order.get('ordType',None)=='Limit' and order.get('execInst',None) :
+            if self.postOnly and order.get('ordType',None)=='Limit'  :#and order.get('execInst',None)
                 order['execInst'] = 'ParticipateDoNotInitiate'
-        return self._curl_bitmex(path='order/bulk', postdict={'orders': orders}, verb='POST')
+            tar_orders.append(order)
+        return self._curl_bitmex(path='order/bulk', postdict={'orders': tar_orders}, verb='POST')
 
     @authentication_required
     def open_orders(self):
@@ -202,9 +204,9 @@ class BitMEX(object):
         return [o for o in orders if str(o['clOrdID']).startswith(self.orderIDPrefix)]
 
     @authentication_required
-    def cancel(self, orderID):
+    def cancel(self, orderID,cancel_all=False):
         """Cancel an existing order."""
-        path = "order"
+        path = "order" if not cancel_all else "order/all"
         postdict = {
             'orderID': orderID,
         }
