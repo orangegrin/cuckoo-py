@@ -58,7 +58,8 @@ class BitMEX(object):
         self.exit()
 
     def exit(self):
-        self.ws.exit()
+        if self.ws:
+            self.ws.exit()
 
     #
     # Public methods
@@ -191,7 +192,7 @@ class BitMEX(object):
         return self.ws.open_orders(self.orderIDPrefix)
 
     @authentication_required
-    def http_open_orders(self):
+    def http_open_orders(self,anyPrefix=False):
         """Get open orders via HTTP. Used on close to ensure we catch them all."""
         path = "order"
         orders = self._curl_bitmex(
@@ -202,8 +203,11 @@ class BitMEX(object):
             },
             verb="GET"
         )
-        # Only return orders that start with our clOrdID prefix.
-        return [o for o in orders if str(o['clOrdID']).startswith(self.orderIDPrefix)]
+        if anyPrefix:
+            return orders
+        else:
+            # Only return orders that start with our clOrdID prefix.
+            return [o for o in orders if str(o['clOrdID']).startswith(self.orderIDPrefix)]
 
     @authentication_required
     def cancel(self, orderID,cancel_all=False):
