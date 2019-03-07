@@ -19,4 +19,3 @@ class OrderResultType(Enum):
     Error = 4
     Canceled = 5
     PendingCancel = 6
-
