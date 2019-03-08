@@ -14,7 +14,7 @@ redis_conn = redis.Redis(host='localhost', port=6379)
 rsLib = RedisLib()
 exchange='bitmex'
 symbol='XBTUSD'
-symbol_ch_dict={"bitmex":{"XBTUSD":"BTCUSD"}}
+symbol_ch_dict={"bitmex":{"XBTUSD":"XBTUSD"}}
 data_cache={}
 
 DefaultUnAuthSubTables=["orderBookL2","quote"]
