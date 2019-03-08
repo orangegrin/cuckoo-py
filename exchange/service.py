@@ -3,6 +3,9 @@ import aioredis
 from db.redis_lib import RedisLib
 from .bitmex.bitmex_mon_api import BitMexMon
 from .hbdm.api import HuobiAPI
+import time, threading
+
+
 class ExchangeService:
     def __init__(self):
         self.redislib = RedisLib()
@@ -55,6 +58,8 @@ class ExchangeService:
 
     async def initexchange(self):
         self.redis = await aioredis.create_redis('redis://localhost')
+        
+
 
     async def subscribe(self, channel, callback):
         res = await self.redis.subscribe(channel)

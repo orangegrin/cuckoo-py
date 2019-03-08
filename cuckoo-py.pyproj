@@ -21,6 +21,9 @@
   <ItemGroup>
     <Compile Include="bitmex_ws_main.py" />
     <Compile Include="db\redis_lib.py" />
+    <Compile Include="db\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="exchange\bitmex\apihub\auth\AccessTokenAuth.py" />
     <Compile Include="exchange\bitmex\apihub\auth\APIKeyAuth.py" />
     <Compile Include="exchange\bitmex\apihub\auth\APIKeyAuthWithExpires.py" />

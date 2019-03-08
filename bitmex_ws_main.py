@@ -117,7 +117,7 @@ def quote_callback(data):
     pprint.pprint(data[-1])
 
 def redis_pub(channel,pub_data):
-    return True
+    #return True
     pprint.pprint(pub_data)
     redis_conn.publish(channel, json.dumps(pub_data))
 
@@ -212,9 +212,9 @@ def main() -> None:
     except (KeyboardInterrupt, SystemExit):
         sys.exit()
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
 
-    # run()
-    main()
+#    # run()
+#    main()
 
     

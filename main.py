@@ -5,6 +5,8 @@ from exchange.enums import Side
 from exchange.enums import OrderType
 from exchange.enums import OrderResultType
 
+from huobi_ws import main as huobi_ws_main
+from bitmex_ws_main import main as bitmex_ws_main
 exchange_a = "bitmex"
 exchange_b = "huobi"
 symbol_a = "BTC_USD"
@@ -47,6 +49,7 @@ class Strategy(object):
 
     def position_change_handler(self, position):
         # 保存仓位信息
+        print("刷新仓位数据")
         market["position"] = position
 
 
@@ -106,10 +109,21 @@ class Strategy(object):
         self.es.modify_limit_order(exchange_a, symbol_a, side, qty, price)
 
     async def run(self):
+        
         await self.es.initexchange()
+        print(1)
         await self.es.subscribe_orderbook(exchange_b, symbol_b, self.orderbook_change_handler)
+        print(2)
         await self.es.subscribe_position(exchange_a, symbol_a, self.position_change_handler)
+        print(3)
         await self.es.subscribe_order_change(exchange_a, symbol_a, self.order_change_handler)
+        print(4)
+        huobi_ws_th = threading.Thread(target=huobi_ws_main, name='huobiThread')
+        bitmex_ws_th = threading.Thread(target=bitmex_ws_main, name='bitmexThread')
+        huobi_ws_th.start()
+        bitmex_ws_th.start()
+        huobi_ws_th.join()
+        bitmex_ws_th.join()
 
 
 async def run():
