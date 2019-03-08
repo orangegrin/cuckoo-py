@@ -71,7 +71,7 @@ def main():
                     }
                     pubdata_json = json.dumps(pubData)
                     # print(pubdata_json)
-                    redis_conn.hmset(channel, {data['ts']: pubdata_json})
+                    # redis_conn.hmset(channel, {data['ts']: pubdata_json})
                     redis_conn.publish(channel, pubdata_json)
 # if __name__ == '__main__':
 #    while(1):

@@ -9,7 +9,6 @@ import sys
 filename = sys.argv[0]
 dirname = os.path.dirname(filename)
 prj_root = os.path.abspath(dirname)
-print(prj_root)
 conf_path = os.path.join(prj_root,'config.ini')
 settings = configparser.ConfigParser()
 settings.read(conf_path)

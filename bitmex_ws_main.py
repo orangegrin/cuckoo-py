@@ -50,7 +50,7 @@ def orderBookL2_callback(data):
         "bids": bids
     }
     redis_pub(channel,pub_data)
-    pprint.pprint(pub_data)
+    # pprint.pprint(pub_data)
 
 def order_callback(data):
     print("In order handle!!")
@@ -73,7 +73,7 @@ def order_callback(data):
         })
     data_cache['order']=pub_data
     redis_pub(channel,pub_data)
-    pprint.pprint(pub_data)
+    # pprint.pprint(pub_data)
 
 def position_callback(data):
     print("In position handle!!")
@@ -118,7 +118,7 @@ def quote_callback(data):
 
 def redis_pub(channel,pub_data):
     #return True
-    pprint.pprint(pub_data)
+    # pprint.pprint(pub_data)
     redis_conn.publish(channel, json.dumps(pub_data))
 
 
