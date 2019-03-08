@@ -9,13 +9,12 @@ exchange_a = "bitmex"
 exchange_b = "huobi"
 symbol_a = "BTC_USD"
 symbol_b = "BTC_CW"
-max_qty = 200
+max_qty = 10
 min_rate = 0.003
 a_fees = -0.00025
 b_fess = 0.00025
 qty_rate = 0.3
 market = {}
-
 # ====================handler===========================
 
 
@@ -23,23 +22,25 @@ class Strategy(object):
     def __init__(self):
         es = ExchangeService()
         self.es = es
-
     def orderbook_change_handler(self, orderbook):
         print(orderbook)
 
         position = market["position"]
         # 如果当前交易所有没有仓位
         if(position != None and position.qty == 0):
+            print("准备双向开仓")
             # 双向开仓
             self.open_position(orderbook, Side.Buy)
             self.open_position(orderbook, Side.Sell)
         else:
+            print("准备平仓")
             # 先平仓
             self.close_position(orderbook)
 
     def order_change_handler(self, order_request):
         """order_request: ExchangeOrderRequest"""
         # 如果限价交易订单完成，则在另外一个交易所反向市价套保
+        #print("exchangeA 挂单交易成功")
         if(order_request.orderType == OrderResultType.Filled):
             side = Side.Sell if order_request.side == Side.Buy else Side.Buy
             self.es.open_market_order(exchange_b, symbol_b, side, order_request.qty)
@@ -58,24 +59,19 @@ class Strategy(object):
         """
         price = 0
         qty = 0
-
         fees = (a_fees * orderbook.bids[0].price) + \
             (b_fess * orderbook.bids[0].price)
-        # symbol_a- exchange_b
+        # standarddev = symbol_a- exchange_b
         standarddev = self.es.get_standard_dev(
-
             exchange_a, exchange_b, symbol_a,symbol_b, "Min", 60)
 
         if(side == Side.Sell):
             price = orderbook.bids[0].price * \
                 (min_rate + 1) + fees * 2 + standarddev
-
             qty = orderbook.bids[0].qty * qty_rate
         else:
-
             price = orderbook.asks[0].price * \
                 (1 - min_rate) - fees * 2 + standarddev
-
             qty = orderbook.asks[0].qty * qty_rate
         return price, qty
 
@@ -83,12 +79,10 @@ class Strategy(object):
     def get_close_position_order_pair(self, orderbook, side):
         price = 0
         qty = 0
-       
         if(side == Side.Sell):
             price = orderbook.bids[0].price
             qty = orderbook.bids[0].qty * qty_rate
         else:
-          
             price = orderbook.asks[0].price
             qty = orderbook.asks[0].qty * qty_rate
         return price, qty
@@ -98,6 +92,7 @@ class Strategy(object):
         price, qty = self.get_limit_order_pair(orderbook, side)
         if(qty > max_qty):
             qty = max_qty
+        print("执行开仓 Side:"+side.value+" qty:"+qty+" price"+price)
         self.es.modify_limit_order(exchange_a, symbol_a, side, qty, price)
 
     # 根据orderbook数据进行平仓操作
@@ -107,6 +102,7 @@ class Strategy(object):
         price, qty = self.get_close_position_order_pair(orderbook, side)
         if(qty > position.qty):
             qty = position.qty
+        print("执行平仓 Side:"+side.value+" qty:"+qty+" price"+price)
         self.es.modify_limit_order(exchange_a, symbol_a, side, qty, price)
 
     async def run(self):

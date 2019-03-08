@@ -2,20 +2,20 @@ from enum import Enum, unique
 
 
 class Side(Enum):
-    Buy = 0
-    Sell = 1
+    Buy = "Buy"
+    Sell = "Sell"
 
 
 class OrderType(Enum):
-    Limit = 0
-    Market = 1
+    Limit = "Limit"
+    Market = "Market"
 
 
 class OrderResultType(Enum):
-    Unknown = 0
-    Filled = 1
-    FilledPartially = 2
-    Pending = 3
-    Error = 4
-    Canceled = 5
-    PendingCancel = 6
+    Unknown = "Unknown"
+    Filled = "Filled"
+    FilledPartially = "FilledPartially"
+    Pending = "Pending"
+    Error = "Error"
+    Canceled = "Canceled "
+    PendingCancel = "PendingCancel"
