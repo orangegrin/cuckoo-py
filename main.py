@@ -5,7 +5,8 @@ from exchange.enums import Side
 from exchange.enums import OrderType
 from exchange.enums import OrderResultType
 
-import time, threading
+import time
+import threading
 from huobi_ws import main as huobi_ws_main
 from bitmex_ws_main import main as bitmex_ws_main
 exchange_a = "bitmex"
@@ -25,9 +26,8 @@ class Strategy(object):
     def __init__(self):
         es = ExchangeService()
         self.es = es
-    def orderbook_change_handler(self, orderbook):
-        print(orderbook)
 
+    def orderbook_change_handler(self, orderbook):
         position = market["position"]
         # 如果当前交易所有没有仓位
         if(position != None and position.qty == 0):
@@ -46,13 +46,13 @@ class Strategy(object):
         #print("exchangeA 挂单交易成功")
         if(order_request.orderType == OrderResultType.Filled):
             side = Side.Sell if order_request.side == Side.Buy else Side.Buy
-            self.es.open_market_order(exchange_b, symbol_b, side, order_request.qty)
+            self.es.open_market_order(
+                exchange_b, symbol_b, side, order_request.qty)
 
     def position_change_handler(self, position):
         # 保存仓位信息
         print("刷新仓位数据")
         market["position"] = position
-
 
     def get_limit_order_pair(self, orderbook, side):
         """
@@ -67,7 +67,7 @@ class Strategy(object):
             (b_fess * orderbook.bids[0].price)
         # standarddev = symbol_a- exchange_b
         standarddev = self.es.get_standard_dev(
-            exchange_a, exchange_b, symbol_a,symbol_b, "Min", 60)
+            exchange_a, exchange_b, symbol_a, symbol_b, "Min", 60)
 
         if(side == Side.Sell):
             price = orderbook.bids[0].price * \
@@ -102,7 +102,7 @@ class Strategy(object):
     # 根据orderbook数据进行平仓操作
     def close_position(self, orderbook):
         position = market["position"]
-        side = Side.Sell if position.qty> 0 else Side.Buy
+        side = Side.Sell if position.qty > 0 else Side.Buy
         price, qty = self.get_close_position_order_pair(orderbook, side)
         if(qty > position.qty):
             qty = position.qty
@@ -110,42 +110,25 @@ class Strategy(object):
         self.es.modify_limit_order(exchange_a, symbol_a, side, qty, price)
 
     async def run(self):
-        
-        await self.es.initexchange()
-
-        print(1)
-        await self.es.subscribe_orderbook(exchange_b, symbol_b, self.orderbook_change_handler)
-        print(2)
-        await self.es.subscribe_position(exchange_a, symbol_a, self.position_change_handler)
-        print(3)
-        await self.es.subscribe_order_change(exchange_a, symbol_a, self.order_change_handler)
-        print(4)
-        huobi_ws_th = threading.Thread(target=huobi_ws_main, name='huobiThread')
-        bitmex_ws_th = threading.Thread(target=bitmex_ws_main, name='bitmexThread')
-        huobi_ws_th.start()
-        bitmex_ws_th.start()
-        huobi_ws_th.join()
-        bitmex_ws_th.join()
-    async def run(self):
-        
-        await self.es.initexchange()
-        print(1)
-        asyncio.create_task(self.es.subscribe_orderbook(exchange_b, symbol_b, self.orderbook_change_handler))
-        print(2)
-        asyncio.create_task(self.es.subscribe_position(exchange_a, symbol_a, self.position_change_handler))
-        print(3)
-        asyncio.create_task(self.es.subscribe_order_change(exchange_a, symbol_a, self.order_change_handler))
-        print(4)
-        huobi_ws_th = threading.Thread(target=huobi_ws_main, name='huobiThread')
-        bitmex_ws_th = threading.Thread(target=bitmex_ws_main, name='bitmexThread')
-        huobi_ws_th.start()
-        bitmex_ws_th.start()
-        huobi_ws_th.join()
-        bitmex_ws_th.join()
+        # await self.es.initexchange()
+        # asyncio.create_task(self.es.subscribe_orderbook(exchange_b, symbol_b, self.orderbook_change_handler))
+        # asyncio.create_task(self.es.subscribe_position(exchange_a, symbol_a, self.position_change_handler))
+        # asyncio.create_task(self.es.subscribe_order_change(exchange_a, symbol_a, self.order_change_handler))
         while True:
-            await asyncio.sleep(1000)
+            await asyncio.sleep(1)
+
+
 async def run():
     strategy = Strategy()
     await strategy.run()
+
+huobi_ws_th = threading.Thread(target=huobi_ws_main, name='huobiThread')
+bitmex_ws_th = threading.Thread(target=bitmex_ws_main, name='bitmexThread')
+huobi_ws_th.start()
+bitmex_ws_th.start()
+huobi_ws_th.join()
+bitmex_ws_th.join()
 asyncio.run(run())
 
+# huobi_ws_main()
+# bitmex_ws_main()
