@@ -18,7 +18,7 @@ class ExchangeService:
     async def subscribe_orderbook(self, exchangename, symbol, callback):
         channel = "OrderBookChange"+"."+exchangename+"."+symbol
         channel = self.redislib.set_channel_name(channel)
-
+        print(channel)
         await self.subscribe(channel, callback=callback)
 
     async def subscribe_position(self, exchangename, symbol, callback):
