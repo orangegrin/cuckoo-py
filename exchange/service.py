@@ -1,5 +1,5 @@
 import asyncio
-import db.aredis as aredis
+import aioredis
 from db.redis_lib import RedisLib
 from .bitmex.bitmex_mon_api import BitMexMon
 from .hbdm.api import HuobiAPI
@@ -54,7 +54,7 @@ class ExchangeService:
         NotImplementedError("getstandarddev")
 
     async def initexchange(self):
-        self.redis = await aredis.create_redis('redis://localhost')
+        self.redis = await aioredis.create_redis('redis://localhost')
 
     async def subscribe(self, channel, callback):
         res = await self.redis.subscribe(channel)
