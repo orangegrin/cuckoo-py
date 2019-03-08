@@ -63,7 +63,10 @@ class ExchangeService:
 
     async def subscribe(self, channel, callback):
         res = await self.redis.subscribe(channel)
+        print("changel:"+channel)
         await asyncio.ensure_future(self.reader(res[0], callback))
+
+
 
     async def reader(self, ch, callback):
         while (await ch.wait_message()):
@@ -71,3 +74,4 @@ class ExchangeService:
             data = await ch.get_json()
             ch_name = ch.name.decode('utf-8')
             callback(data)
+

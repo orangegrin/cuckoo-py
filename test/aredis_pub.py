@@ -12,7 +12,7 @@ async def main():
     pub = await aioredis.create_redis(
         'redis://localhost')
 
-    res = await pub.publish_json('OrderBookChange.huobi.BTC_USD', "sfsd")
+    res = await pub.publish_json('aa.bb.cc', "sfsd")
     # assert res == 1
 
     # await sub.unsubscribe('chan:1')
