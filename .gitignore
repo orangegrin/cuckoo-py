@@ -6,5 +6,6 @@ sftp-config.json
 /.vs/cuckoo-py/v15/.suo
 /.vs/slnx.sqlite
 config.ini
+Pipfile.lock
 /.vscode
 /.vs/ProjectSettings.json
