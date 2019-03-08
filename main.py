@@ -43,14 +43,16 @@ class Strategy(object):
             # 双向开仓
             self.converge_orders(orderbook)
 
-    def order_change_handler(self, order_request):
+    def order_change_handler(self, order_requests):
         """order_request: ExchangeOrderRequest"""
         # 如果限价交易订单完成，则在另外一个交易所反向市价套保
         # print("exchangeA 挂单交易成功")
-        if(order_request.orderType == OrderResultType.Filled):
-            side = Side.Sell if order_request.side == Side.Buy else Side.Buy
-            self.es.open_market_order(
-                exchange_b, symbol_b, side, order_request.qty)
+        print(order_requests)
+        for order_request in order_requests:
+            if(order_request.orderType == OrderResultType.Filled):
+                side = Side.Sell if order_request.side == Side.Buy else Side.Buy
+                self.es.open_market_order(
+                    exchange_b, symbol_b, side, order_request.qty)
 
     def position_change_handler(self, position):
         # 保存仓位信息
