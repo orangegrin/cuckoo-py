@@ -231,7 +231,7 @@ class HuobiDM:
         if client_order_id:
             params['client_order_id'] = client_order_id
 
-        print(params)
+        # print(params)
         request_path = '/api/v1/contract_order'
         return api_key_post(self.__url, request_path, params, self.__access_key, self.__secret_key)
     

@@ -45,7 +45,7 @@ def http_post_request(url, params, add_to_headers=None):
     if add_to_headers:
         headers.update(add_to_headers)
     postdata = json.dumps(params)
-    print(url)
+    # print(url)
     try:
         response = requests.post(url, postdata, headers=headers, timeout=TIMEOUT)
         if response.status_code == 200:
