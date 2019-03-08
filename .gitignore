@@ -9,3 +9,6 @@ config.ini
 Pipfile.lock
 /.vscode
 /.vs/ProjectSettings.json
+*/__pycache__
+*/*/__pycache__
+*/*/*/__pycache__
