@@ -49,10 +49,10 @@ class Strategy(object):
         # print("exchangeA 挂单交易成功")
         print(order_requests)
         for order_request in order_requests:
-            if(order_request.orderType == OrderResultType.Filled):
-                side = Side.Sell if order_request.side == Side.Buy else Side.Buy
+            if(order_request["orderType"] == OrderResultType.Filled):
+                side = Side.Sell if order_request["side"] == Side.Buy else Side.Buy
                 self.es.open_market_order(
-                    exchange_b, symbol_b, side, order_request.qty)
+                    exchange_b, symbol_b, side, order_request["qty"])
 
     def position_change_handler(self, position):
         # 保存仓位信息
