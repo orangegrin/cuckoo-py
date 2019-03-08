@@ -32,7 +32,7 @@ class Strategy(object):
     def orderbook_change_handler(self, orderbook):
         if 'position' in market:
             position = market["position"]
-            if position.qty != 0:
+            if position['qty'] != 0:
                 print("准备平仓")
                 # 先平仓
                 self.close_position(orderbook)
@@ -129,10 +129,10 @@ class Strategy(object):
     # 根据orderbook数据进行平仓操作
     def close_position(self, orderbook):
         position = market["position"]
-        side = Side.Sell if position.qty > 0 else Side.Buy
+        side = Side.Sell if position['qty'] > 0 else Side.Buy
         price, qty = self.get_close_position_order_pair(orderbook, side)
-        if(qty > position.qty):
-            qty = position.qty
+        if(qty > position['qty']):
+            qty = position['qty']
 
         print("执行平仓 Side:"+side.value+" qty:"+str(qty)+" price"+str(price))
         buy_orders = []
@@ -171,5 +171,5 @@ class Strategy(object):
 async def run():
     strategy = Strategy()
     await strategy.run()
-    
+
 asyncio.run(run())
