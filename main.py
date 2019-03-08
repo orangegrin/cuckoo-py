@@ -154,6 +154,7 @@ class Strategy(object):
         # self.es.modify_limit_order(exchange_a, symbol_a, side, qty, price)
 
     async def run(self):
+        await asyncio.sleep(5)
         await self.es.initexchange()
         asyncio.create_task(self.es.subscribe_position(
             exchange_a, symbol_a, self.position_change_handler))
