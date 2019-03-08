@@ -8,6 +8,7 @@ import redis
 import configparser
 from db.redis_lib import RedisLib
 
+
 def main():
     while(1):
         try:
@@ -30,7 +31,7 @@ def main():
     exchange = "huobi"
     symbol = "BTC_CW"
 
-    redis_conn = redis.Redis(host='localhost', port=6379)
+    redis_conn = redis.Redis(host='localhost', port=6379, db=0)
 
     ws.send(tradeStr_marketDepth)
     trade_id = ''
@@ -41,7 +42,7 @@ def main():
         if result[:7] == '{"ping"':
             ts = result[8:21]
             pong = '{"pong":'+ts+'}'
-            # print(pong)
+            print(pong)
             ws.send(pong)
             ws.send(tradeStr_marketDepth)
 
@@ -69,10 +70,10 @@ def main():
                         "Bids": bids
                     }
                     pubdata_json = json.dumps(pubData)
-                    print(pubdata_json)
-                    res = redis_conn.publish(channel, pubdata_json)
-
-#if __name__ == '__main__':
+                    # print(pubdata_json)
+                    redis_conn.hmset(channel, {data['ts']: pubdata_json})
+                    redis_conn.publish(channel, pubdata_json)
+# if __name__ == '__main__':
 #    while(1):
 #        try:
 #            ws = create_connection("wss://www.hbdm.com/ws")
