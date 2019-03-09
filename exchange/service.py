@@ -4,6 +4,7 @@ from db.redis_lib import RedisLib
 from .bitmex.bitmex_mon_api import BitMexMon
 from .hbdm.api import HuobiAPI
 import time, threading
+import traceback
 
 
 class ExchangeService:
@@ -17,19 +18,21 @@ class ExchangeService:
 
     async def subscribe_orderbook(self, exchangename, symbol, callback):
         channel = "OrderBookChange"+"."+exchangename+"."+symbol
-        channel = self.redislib.set_channel_name(channel)
-
-        await self.subscribe(channel, callback=callback)
+        res =  await self.subscribe(channel, callback=callback)
+        task =  asyncio.create_task(self.reader(res[0], callback))
+        return task
 
     async def subscribe_position(self, exchangename, symbol, callback):
         channel = "PositionChange"+"."+exchangename+"."+symbol
-        channel = self.redislib.set_channel_name(channel)
-        await self.subscribe(channel, callback=callback)
+        res = await self.subscribe(channel, callback=callback)
+        task =  asyncio.create_task(self.reader(res[0], callback))
+        return task
 
     async def subscribe_order_change(self, exchangename, symbol, callback):
         channel = "OrderChange"+"."+exchangename+"."+symbol
-        channel = self.redislib.set_channel_name(channel)
-        await self.subscribe(channel, callback=callback)
+        res = await self.subscribe(channel, callback=callback)
+        task =  asyncio.create_task(self.reader(res[0], callback))
+        return task
 
     def modify_limit_order(self, exchangename, symbol, side, qty, price):
         self.exchanges[exchangename].open_limit_order(symbol, side, qty, price)
@@ -62,12 +65,20 @@ class ExchangeService:
 
 
     async def subscribe(self, channel, callback):
+        channel = self.redislib.set_channel_name(channel)
+        print("subscribe "+channel)
         res = await self.redis.subscribe(channel)
-        await asyncio.ensure_future(self.reader(res[0], callback))
+        # ch = self.reader(res[0])
+        return res
+        # task =  asyncio.create_task(self.reader(res[0], callback))
+        # return task
 
     async def reader(self, ch, callback):
-        while (await ch.wait_message()):
-            print("on reader")
+        while(await ch.wait_message()):
             data = await ch.get_json()
             ch_name = ch.name.decode('utf-8')
-            callback(data)
+            print("on reader:"+ch_name)
+            try:
+                callback(data)
+            except:
+                traceback.print_exc()
