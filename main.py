@@ -13,11 +13,11 @@ exchange_a = "bitmex"
 exchange_b = "huobi"
 symbol_a = "XBTUSD"
 symbol_b = "BTC_CW"
-max_qty = 100
-min_rate = 0.0003
+max_qty = 200
+min_rate = 0.0002
 a_fees = -0.00025
 b_fess = 0.00025
-qty_rate = 0.3
+qty_rate = 0.6
 market = {}
 # ====================handler===========================
 
@@ -69,7 +69,7 @@ class Strategy(object):
             side = Side.Sell if open_qty > 0 else Side.Buy
             print("---------------------open_market_order------------------")
             self.es.open_market_order(
-                exchange_b, symbol_b, side, abs(open_qty))
+                exchange_b, "BTC", side, abs(open_qty))
 
         market["position"] = r_p
 
