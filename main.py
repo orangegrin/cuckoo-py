@@ -14,7 +14,7 @@ exchange_b = "huobi"
 symbol_a = "XBTUSD"
 symbol_b = "BTC_CW"
 max_qty = 100
-min_rate = 0.05
+min_rate = 0.0003
 a_fees = -0.00025
 b_fess = 0.00025
 qty_rate = 0.3
@@ -49,17 +49,29 @@ class Strategy(object):
         # print("exchangeA 挂单交易成功")
         print("-------------------------order chang handler--------------------------")
         print(order_requests)
-        for order_request in order_requests:
-            if(order_request["orderType"] == OrderResultType.Filled):
-                side = Side.Sell if order_request["side"] == Side.Buy else Side.Buy
-                self.es.open_market_order(
-                    exchange_b, symbol_b, side, order_request["qty"])
+        # for order_request in order_requests:
+        #     if(order_request["orderType"] == OrderResultType.Filled):
+        #         side = Side.Sell if order_request["side"] == Side.Buy else Side.Buy
+        #         self.es.open_market_order(
+        #             exchange_b, symbol_b, side, order_request["qty"])
 
     def position_change_handler(self, position):
         # 保存仓位信息
         print("--------------------update position -------------------------------")
         print(position)
-        market["position"] = position
+        r_p = position
+        qty = 0
+        if 'position' in market:
+            l_p = market["position"]
+            qty = l_p["qty"]
+        open_qty = position['qty'] - qty
+        if(open_qty != 0):
+            side = Side.Sell if open_qty > 0 else Side.Buy
+            print("---------------------open_market_order------------------")
+            self.es.open_market_order(
+                exchange_b, symbol_b, side, abs(open_qty))
+
+        market["position"] = r_p
 
     def get_limit_order_pair(self, orderbook, side):
         """
@@ -122,23 +134,13 @@ class Strategy(object):
             self.es.converge_orders(
                 exchange_a, symbol_a, buy_orders, sell_orders)
 
-    # 根据orderbook数据进行开仓操作
-    def open_position(self, orderbook, side):
-        price, qty = self.get_limit_order_pair(orderbook, side)
-        if(qty > max_qty):
-            qty = max_qty
-        print("执行开仓 Side:"+side.value+" qty:"+str(qty)+" price"+str(price))
-        self.es.modify_limit_order(exchange_a, symbol_a, side, qty, price)
-
     # 根据orderbook数据进行平仓操作
     def close_position(self, orderbook):
         position = market["position"]
         side = Side.Sell if position['qty'] > 0 else Side.Buy
         price, qty = self.get_close_position_order_pair(orderbook, side)
         if(qty > position['qty']):
-            qty = position['qty']
-
-        print("执行平仓 Side:"+side.value+" qty:"+str(qty)+" price"+str(price))
+            qty = abs(position['qty'])
         buy_orders = []
         sell_orders = []
         if(side == Side.Buy):
