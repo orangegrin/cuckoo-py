@@ -5,6 +5,10 @@ from exchange.enums import Side
 from exchange.enums import OrderType
 from exchange.enums import OrderResultType
 
+import time
+import threading
+from huobi_ws import main as huobi_ws_main
+from bitmex_ws_main import main as bitmex_ws_main
 exchange_a = "bitmex"
 exchange_b = "huobi"
 symbol_a = "XBTUSD"
@@ -154,22 +158,16 @@ class Strategy(object):
     async def run(self):
         await asyncio.sleep(5)
         await self.es.initexchange()
+        asyncio.create_task(self.es.subscribe_position(
+            exchange_a, symbol_a, self.position_change_handler))
+        await asyncio.sleep(2)
+        asyncio.create_task(self.es.subscribe_orderbook(
+            exchange_b, symbol_b, self.orderbook_change_handler))
 
-        task1 = await self.es.subscribe_orderbook(exchange_b, symbol_b, self.orderbook_change_handler)
-
-        task2 = await self.es.subscribe_position(exchange_a, symbol_a, self.position_change_handler)
-
-        task3 = await self.es.subscribe_order_change(exchange_a, symbol_a, self.order_change_handler)
-
-        await task1
-        await task2
-        await task3
-        # huobi_ws_th = threading.Thread(target=huobi_ws_main, name='huobiThread')
-        # bitmex_ws_th = threading.Thread(target=bitmex_ws_main, name='bitmexThread')
-        # huobi_ws_th.start()
-        # bitmex_ws_th.start()
-        # huobi_ws_th.join()
-        # bitmex_ws_th.join()
+        asyncio.create_task(self.es.subscribe_order_change(
+            exchange_a, symbol_a, self.order_change_handler))
+        while True:
+            await asyncio.sleep(1)
 
 
 async def run():
