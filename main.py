@@ -13,8 +13,8 @@ exchange_a = "bitmex"
 exchange_b = "huobi"
 symbol_a = "XBTUSD"
 symbol_b = "BTC_CW"
-max_qty = 200
-min_rate = 0.0002
+max_qty = 100
+min_rate = 0.0005
 a_fees = -0.00025
 b_fess = 0.00025
 qty_rate = 0.6
@@ -33,7 +33,6 @@ class Strategy(object):
         if 'position' in market:
             position = market["position"]
             if position['qty'] != 0:
-                print("准备平仓")
                 # 先平仓
                 self.close_position(orderbook)
             else:
@@ -136,11 +135,12 @@ class Strategy(object):
 
     # 根据orderbook数据进行平仓操作
     def close_position(self, orderbook):
-        position = market["position"]
-        side = Side.Sell if position['qty'] > 0 else Side.Buy
+        print("----------------------close position--------------------------")
+        lposi = market["position"]
+        side = Side.Sell if lposi['qty'] > 0 else Side.Buy
         price, qty = self.get_close_position_order_pair(orderbook, side)
-        if(qty > position['qty']):
-            qty = abs(position['qty'])
+        if(qty > abs(lposi['qty'])):
+            qty = abs(lposi['qty'])
         buy_orders = []
         sell_orders = []
         if(side == Side.Buy):
