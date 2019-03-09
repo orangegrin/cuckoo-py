@@ -47,6 +47,7 @@ class Strategy(object):
         """order_request: ExchangeOrderRequest"""
         # 如果限价交易订单完成，则在另外一个交易所反向市价套保
         # print("exchangeA 挂单交易成功")
+        print("-------------------------order chang handler--------------------------")
         print(order_requests)
         for order_request in order_requests:
             if(order_request["orderType"] == OrderResultType.Filled):
@@ -56,7 +57,8 @@ class Strategy(object):
 
     def position_change_handler(self, position):
         # 保存仓位信息
-        print("刷新仓位数据")
+        print("--------------------update position -------------------------------")
+        print(position)
         market["position"] = position
 
     def get_limit_order_pair(self, orderbook, side):
