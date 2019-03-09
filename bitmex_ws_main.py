@@ -17,7 +17,7 @@ symbol='XBTUSD'
 symbol_ch_dict={"bitmex":{"XBTUSD":"XBTUSD"}}
 data_cache={}
 
-DefaultUnAuthSubTables=["orderBookL2","quote"]
+DefaultUnAuthSubTables=["orderBookL2_25","quote"]
 # DefaultUnAuthSubTables=["orderBookL2"]
 DefaultAuthSubTables=["order", "position"]
 
@@ -25,21 +25,23 @@ def orderBookL2_data_format_func(data):
     print("In orderbookL2 data_format_func handle!!")
     return data
 
-def orderBookL2_callback(data):
+def orderBookL2_25_callback(data):
     print("In orderbookL2 handle!!")
     #[[price,qty]...]
     bids=[]
     asks=[]
+    print("#:",time.time())
     for iorder in data:
         if iorder['side']=='Sell':
             bids.append([iorder['price'],iorder['size']])
         elif iorder['side']=='Buy':
             asks.append([iorder['price'],iorder['size']])
-    
+    print("##:",time.time())
     tar_symbol = symbol_ch_dict[exchange][symbol]
     channel = rsLib.set_channel_name("OrderBookChange."+exchange+"."+tar_symbol)
     bids = rsLib.resample_orderbooks(bids,0.5,False)
     asks = rsLib.resample_orderbooks(asks,0.5,True)
+    print("###:",time.time())
     updateUtc = int(time.time()*1000)
     pub_data = {
         "exchange": exchange,
@@ -73,12 +75,12 @@ def order_callback(data):
         })
     data_cache['order']=pub_data
     redis_pub(channel,pub_data)
-    # pprint.pprint(pub_data)
+    pprint.pprint(pub_data)
 
 def position_callback(data):
     print("In position handle!!")
     tar_symbol = symbol_ch_dict[exchange][symbol]
-    print(data[0])
+    # print(data[0])
     if data[0]:
         pub_data ={
                     "exchange":exchange,
@@ -117,104 +119,35 @@ def quote_callback(data):
     pprint.pprint(data[-1])
 
 def redis_pub(channel,pub_data):
-    #return True
+    return True
     # pprint.pprint(pub_data)
     redis_conn.publish(channel, json.dumps(pub_data))
 
 
-
-def run() -> None:
-    bitmex_mon = BitMexMon(symbol,UnAuthSubTables=DefaultUnAuthSubTables,AuthSubTables=DefaultAuthSubTables)
-    bitmex_mon.cancel_orders([],cancel_all=True)
-    position_callback([bitmex_mon.get_position()])
-    
-    pprint.pprint(data_cache)
-    # return None
-    # Try/except just keeps ctrl-c from printing an ugly stacktrace
-    # bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)
-    bitmex_mon.subscribe_data_callback('order',order_callback,lambda x:x)
-    bitmex_mon.subscribe_data_callback('quote',quote_callback,lambda x:x)
-    bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
-    MAX_POSITION=100
-    try:
-        while True:
-            if not data_cache.get('quote',None):
-                time.sleep(1)
-                continue
-            orders=[]
-            current_position_amount = data_cache['position']['Amount']
-            if current_position_amount==0: 
-                orders.append(bitmex_mon.prepare_order(data_cache['quote']['askPrice'],'Sell',MAX_POSITION,'Limit'))
-                orders.append(bitmex_mon.prepare_order(data_cache['quote']['bidPrice'],'Buy',MAX_POSITION,'Limit'))
-            elif current_position_amount>0:
-                if current_position_amount<MAX_POSITION:
-                    orders.append(bitmex_mon.prepare_order(data_cache['quote']['bidPrice'],'Buy',MAX_POSITION-current_position_amount,'Limit'))
-                orders.append(bitmex_mon.prepare_order(data_cache['quote']['askPrice'],'Sell',MAX_POSITION,'Limit'))
-            elif current_position_amount<0:
-                if current_position_amount>(MAX_POSITION*-1):
-                    orders.append(bitmex_mon.prepare_order(data_cache['quote']['askPrice'],'Sell',MAX_POSITION+current_position_amount,'Limit'))
-                orders.append(bitmex_mon.prepare_order(data_cache['quote']['bidPrice'],'Buy',MAX_POSITION,'Limit'))
-
-            tar_orders = []
-            amd_orders=[]
-            print("$$$$$$$$$$$$$$$$$$")
-            print(orders)
-            print(data_cache.get('order',[]))
-            print("$$$$$$$$$$$$$$$$$$")
-            if len(data_cache.get('order',[]))>0:
-                for o in orders:
-                    order_cate = 2
-                    for hold_order in data_cache['order']:
-                        if o['price']==hold_order['Price'] and o['orderQty']==hold_order['Amount'] and o['side'] == "Buy" if hold_order['IsBuy'] else "Sell":
-                            order_cate=1
-                            break
-                        elif o['side'] == "Buy" if hold_order['IsBuy'] else "Sell":
-                            o['orderID']= hold_order['orderId']
-                            order_cate=0
-                            break
-
-                    if order_cate ==0:
-                        amd_orders.append(o)
-                    elif order_cate==2:
-                        tar_orders.append(o)
-            else:
-                tar_orders=orders
-            
-            print("!!!!!!!!!!!!!!!!!!")
-            print(tar_orders)
-            print("##################")
-            print("!!!!!!!!!!!!!!!!!!")
-            print(amd_orders)
-            print("##################")
-            if tar_orders:
-                bitmex_mon.open_orders(tar_orders)
-            if amd_orders:
-                bitmex_mon.amend_orders(amd_orders)
-            time.sleep(1)
-    except (KeyboardInterrupt, SystemExit):
-        sys.exit()
-
 def main() -> None:
-    bitmex_mon = BitMexMon(symbol,UnAuthSubTables=DefaultUnAuthSubTables,AuthSubTables=DefaultAuthSubTables)
-    bitmex_mon.cancel_orders([],cancel_all=True)
-    # position_callback([bitmex_mon.get_position()])
+    bitmex_mon = BitMexMon(symbol,UnAuthSubTables=DefaultUnAuthSubTables,AuthSubTables=DefaultAuthSubTables,RestOnly=True)
+    # bitmex_mon.cancel_orders([],cancel_all=True)
+    # # position_callback([bitmex_mon.get_position()])
     
-    pprint.pprint(data_cache)
-    # return None
-    # Try/except just keeps ctrl-c from printing an ugly stacktrace
-    bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)
-    bitmex_mon.subscribe_data_callback('order',order_callback,lambda x:x)
-    # bitmex_mon.subscribe_data_callback('quote',quote_callback,lambda x:x)
-    bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
+    # pprint.pprint(data_cache)
+    # # return None
+    # # Try/except just keeps ctrl-c from printing an ugly stacktrace
+    # # bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)
+    # # bitmex_mon.subscribe_data_callback('orderBookL2_25',orderBookL2_25_callback,lambda x:x)
+    # bitmex_mon.subscribe_data_callback('order',order_callback,lambda x:x)
+    # # bitmex_mon.subscribe_data_callback('quote',quote_callback,lambda x:x)
+    # bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
     try:
-        while True:
-            time.sleep(3)
+        bitmex_mon.converge_orders('XBTUSD',[{}],[])
+        # while True:
+        #     time.sleep(3)
     except (KeyboardInterrupt, SystemExit):
         sys.exit()
+    # bitmex_mon.open_limit_order('XBTUSD','Buy',100,3900)
 
-#if __name__ == "__main__":
+if __name__ == "__main__":
 
-#    # run()
-#    main()
+   # run()
+   main()
 
     

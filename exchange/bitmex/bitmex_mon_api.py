@@ -1,9 +1,13 @@
-import sys,requests
+import sys,requests,asyncio,aioredis
+from threading import Thread
+import os
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, os.pardir))
 from time import sleep
 from .apihub import bitmex
 from .settings import settings
 from .apihub.utils import log, constants, errors, math
 from ..enums import OrderType,Side
+from db.redis_lib import RedisLib
 
 OrderSideMap = {Side.Buy.value:'Buy',Side.Sell.value:'Sell'}
 OrderTypeMap = {OrderType.Limit.value:'Limit',OrderType.Market.value:'Market'}
@@ -19,6 +23,7 @@ class BitMexMon(object):
         """ Init bitmex api obj """
         # str(settings.get('bitmex','api_url'))
         self.symbol = symbol
+        self.exchange= 'bitmex'
         self.bitmex = bitmex.BitMEX(
             base_url=settings.get('bitmex','api_url'), symbol=self.symbol,
             apiKey=settings.get('bitmex','api_key'), apiSecret=settings.get('bitmex','api_secert'),
@@ -26,6 +31,32 @@ class BitMexMon(object):
             timeout=settings.getint('bitmex','timeout'),AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables,
             RestOnly=RestOnly
         )
+        self.rsLib = RedisLib()
+        self.orderBookCache = {}
+        self.loop = asyncio.get_event_loop()
+        self.thread = Thread(target = self.orderBookMon,args=(self.loop,) )
+        self.thread.daemon = True
+        self.thread.start()
+
+
+    async def orderBookMonThread(self,redis):
+        
+        res = await redis.subscribe(self.rsLib.set_channel_name("OrderBookChange."+self.exchange+"."+self.symbol))
+        
+        ch = res[0]
+
+        while (True):
+            
+            await ch.wait_message()
+            msg = await ch.get_json()
+            print("Got Message:", msg)
+            self.orderBookCache = msg
+
+    def orderBookMon(self,loop):
+        asyncio.set_event_loop(loop)
+        sub = loop.run_until_complete( aioredis.create_redis('redis://localhost/0'))
+        loop.run_until_complete(asyncio.wait([asyncio.ensure_future(self.orderBookMonThread(sub))]))
+
     
     def prepare_order(self,price,side,orderQty,ordType):
         """
@@ -50,8 +81,20 @@ class BitMexMon(object):
         else:
             raise ValueError("[prepare_order] ordType error!!!")
 
+    def check_price_sanity(self,price,side):
+        """
+        check order price , avoid market order loss fees
+        """
+        current_ask_price=self.orderBookCache['asks'][0][0]
+        current_bid_price=self.orderBookCache['bids'][0][0]
+        if OrderSideMap[side.value]=="Buy":
+            return True if price<current_ask_price else False
+        elif OrderSideMap[side.value]=="Sell":
+            return True if price>current_bid_price else False
+
     def open_limit_order(self,symbol, side, qty, price):
-        self.open_orders([self.prepare_order(price,OrderSideMap[side.value],qty,OrderTypeMap[OrderType.Limit.value])])
+        if self.check_price_sanity(price,side):
+            self.open_orders([self.prepare_order(price,OrderSideMap[side.value],qty,OrderTypeMap[OrderType.Limit.value])])
 
     def open_market_order(self,symbol, side, qty):
         self.open_orders([self.prepare_order(None,OrderSideMap[side.value],qty,OrderTypeMap[OrderType.Limit.value])])
@@ -91,8 +134,9 @@ class BitMexMon(object):
                 # Found an existing order. Do we need to amend it?
                 if desired_order['orderQty'] != order['leavesQty'] or desired_order['price'] != order['price'] :
                     # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
-                    to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
-                                     'price': desired_order['price'], 'side': order['side']})
+                    if self.check_price_sanity(desired_order['price'],desired_order['side']):
+                        to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
+                                        'price': desired_order['price'], 'side': order['side']})
             except IndexError:
                 # Will throw if there isn't a desired order to match. In that case, cancel it.
                 to_cancel.append(order)

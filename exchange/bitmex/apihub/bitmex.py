@@ -172,7 +172,15 @@ class BitMEX(object):
     def amend_bulk_orders(self, orders):
         """Amend multiple orders."""
         # Note rethrow; if this fails, we want to catch it and re-tick
-        return self._curl_bitmex(path='order/bulk', postdict={'orders': orders}, verb='PUT', rethrow_errors=True)
+        tar_orders = []
+        for order in orders:
+            order['symbol'] = self.symbol
+            if self.postOnly:#and order.get('execInst',None)
+                order['execInst'] = 'ParticipateDoNotInitiate'
+                order['ordType'] = 'Limit'
+            tar_orders.append(order)
+        print(tar_orders)
+        return self._curl_bitmex(path='order/bulk', postdict={'orders': tar_orders}, verb='PUT', rethrow_errors=True)
 
     @authentication_required
     def create_bulk_orders(self, orders):

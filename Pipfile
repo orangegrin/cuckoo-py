@@ -12,6 +12,7 @@ requests = "*"
 redis = "*"
 numpy = "*"
 pandas = "*"
+websocket-client = "*"
 
 [requires]
 python_version = "3.7"
