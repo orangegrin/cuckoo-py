@@ -18,15 +18,15 @@ symbol_ch_dict={"bitmex":{"XBTUSD":"XBTUSD"}}
 data_cache={}
 
 DefaultUnAuthSubTables=["orderBookL2_25","quote"]
-# DefaultUnAuthSubTables=["orderBookL2"]
+# DefaultUnAuthSubTables=["orderBookL2_25"]
 DefaultAuthSubTables=["order", "position"]
 
-def orderBookL2_data_format_func(data):
-    print("In orderbookL2 data_format_func handle!!")
+def orderBookL2_25_data_format_func(data):
+    print("In orderBookL2_25 data_format_func handle!!")
     return data
 
 def orderBookL2_25_callback(data):
-    print("In orderbookL2 handle!!")
+    print("In orderBookL2_25 handle!!")
     #[[price,qty]...]
     bids=[]
     asks=[]
@@ -129,21 +129,19 @@ def main() -> None:
     # bitmex_mon.cancel_orders([],cancel_all=True)
     # # position_callback([bitmex_mon.get_position()])
     
-    # pprint.pprint(data_cache)
-    # # return None
-    # # Try/except just keeps ctrl-c from printing an ugly stacktrace
-    # # bitmex_mon.subscribe_data_callback('orderBookL2',orderBookL2_callback,orderBookL2_data_format_func)
-    # # bitmex_mon.subscribe_data_callback('orderBookL2_25',orderBookL2_25_callback,lambda x:x)
-    # bitmex_mon.subscribe_data_callback('order',order_callback,lambda x:x)
-    # # bitmex_mon.subscribe_data_callback('quote',quote_callback,lambda x:x)
-    # bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
+    pprint.pprint(data_cache)
+    # return None
+    # Try/except just keeps ctrl-c from printing an ugly stacktrace
+    bitmex_mon.subscribe_data_callback('orderBookL2_25',orderBookL2_25_callback,lambda x:x)
+    bitmex_mon.subscribe_data_callback('order',order_callback,lambda x:x)
+    # bitmex_mon.subscribe_data_callback('quote',quote_callback,lambda x:x)
+    bitmex_mon.subscribe_data_callback('position',position_callback,lambda x:x)
     try:
-        bitmex_mon.converge_orders('XBTUSD',[{}],[])
-        # while True:
-        #     time.sleep(3)
+        while True:
+            time.sleep(3)
     except (KeyboardInterrupt, SystemExit):
         sys.exit()
-    # bitmex_mon.open_limit_order('XBTUSD','Buy',100,3900)
+
 
 if __name__ == "__main__":
 
