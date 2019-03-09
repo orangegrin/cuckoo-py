@@ -123,7 +123,7 @@ class HuobiAPI(object):
         amount = (int)(amount)
         ret = self.dm.send_contract_order(symbol=market_symbol, contract_type='this_week', contract_code='',
                                           client_order_id='', price=price, volume=amount, direction=direction,
-                                          offset='open', lever_rate=5, order_price_type=h_order_type)
+                                          offset='open', lever_rate=20, order_price_type=h_order_type)
 
         if(ret['status'] == 'ok'):
             order_id = ret['data']['order_id']
@@ -145,7 +145,7 @@ class HuobiAPI(object):
         amount = (int)(amount)
         ret = self.dm.send_contract_order(symbol=market_symbol, contract_type='this_week', contract_code='',
                                           client_order_id='', price='', volume=amount, direction=direction,
-                                          offset='close', lever_rate=5, order_price_type='opponent')
+                                          offset='close', lever_rate=20, order_price_type='opponent')
         print(ret)
         if(ret['status'] == 'ok'):
             return True
