@@ -10,6 +10,7 @@ class RedisLib(object):
 
     def set_channel_name(self, channel):
         new_channel = self.env + "." + channel
+        print(new_channel)
         return new_channel
 
     def setKeyName(self, name):

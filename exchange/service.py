@@ -73,6 +73,8 @@ class ExchangeService:
         # task =  asyncio.create_task(self.reader(res[0], callback))
         # return task
 
+
+
     async def reader(self, ch, callback):
         while(await ch.wait_message()):
             data = await ch.get_json()
