@@ -30,18 +30,18 @@ def orderBookL2_25_callback(data):
     #[[price,qty]...]
     bids=[]
     asks=[]
-    print("#:",time.time())
+    # print("#:",time.time())
     for iorder in data:
         if iorder['side']=='Sell':
             bids.append([iorder['price'],iorder['size']])
         elif iorder['side']=='Buy':
             asks.append([iorder['price'],iorder['size']])
-    print("##:",time.time())
+    # print("##:",time.time())
     tar_symbol = symbol_ch_dict[exchange][symbol]
     channel = rsLib.set_channel_name("OrderBookChange."+exchange+"."+tar_symbol)
     bids = rsLib.resample_orderbooks(bids,0.5,False)
     asks = rsLib.resample_orderbooks(asks,0.5,True)
-    print("###:",time.time())
+    # print("###:",time.time())
     updateUtc = int(time.time()*1000)
     pub_data = {
         "exchange": exchange,

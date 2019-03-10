@@ -19,7 +19,7 @@ DefaultAuthSubTables=["order", "position"]
 
 class BitMexMon(object):
 
-    def __init__(self,symbol,AuthSubTables=DefaultAuthSubTables,UnAuthSubTables=DefaultUnAuthSubTables,RestOnly=False):
+    def __init__(self,symbol,AuthSubTables=DefaultAuthSubTables,UnAuthSubTables=DefaultUnAuthSubTables,RestOnly=False,loop=None):
         """ Init bitmex api obj """
         # str(settings.get('bitmex','api_url'))
         self.symbol = symbol
@@ -31,12 +31,14 @@ class BitMexMon(object):
             timeout=settings.getint('bitmex','timeout'),AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables,
             RestOnly=RestOnly
         )
-        self.rsLib = RedisLib()
-        self.orderBookCache = {}
-        self.loop = asyncio.get_event_loop()
-        self.thread = Thread(target = self.orderBookMon,args=(self.loop,) )
-        self.thread.daemon = True
-        self.thread.start()
+
+        if  RestOnly:
+            self.rsLib = RedisLib()
+            self.orderBookCache = {}
+            self.loop = loop
+            self.thread = Thread(target = self.orderBookMon,args=(self.loop,) )
+            self.thread.daemon = True
+            self.thread.start()
 
 
     async def orderBookMonThread(self,redis):
