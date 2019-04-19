@@ -23,7 +23,7 @@ from multiprocessing import Process,Queue
 
 
 exchange='bitmex'
-symbol=['ETHM19','LTCM19','EOSM19','XRPM19','TRXM19']
+symbol=['ETHM19','LTCM19','EOSM19','XRPM19','TRXM19','XBTUSD']
 symbol_ch_dict={"bitmex":{"XBTUSD":"BTCUSD"}}
 data_cache={}
 sanity_data_cach={}
@@ -34,7 +34,7 @@ Last_last_ts = "000"
 DefaultUnAuthSubTables=["orderBook10"]
 DefaultAuthSubTables=["order", "position"]
 
-q,pingq = Queue(), Queue()
+q,pingq,trade_q = Queue(), Queue(), Queue()
 
 pingdict = {}
 
@@ -143,7 +143,7 @@ def binanceWsFun():
     while True:
         time.sleep(10)
 
-def save_to_db(q):
+def save_to_db(q,trade_q):
     
     dburl = URL(**{
     "drivername": "postgresql+psycopg2",
@@ -157,12 +157,46 @@ def save_to_db(q):
     Session = sessionmaker(bind=engine, class_=SessionContextManager)
     Base.metadata.create_all(bind=engine)
     
+    cache_list = [None]*3
+    last_timestamp = None
     while True:
         sd = q.get()
+        if sd['symbol']+"@"+sd['exchange'] == "XBTUSD@bitmex":
+            
+            if last_timestamp and  sd['timestamp']>= last_timestamp:
+                
+                if sd['timestamp']> last_timestamp:
+                    cache_list.append(sd['asks'])
+                    for i in range(len(cache_list)-1):
+                        cache_list[i],cache_list[i+1] = cache_list[i+1],cache_list[i]
+                    cache_list=cache_list[:-1]
+                    with open("trade_q.log","a") as fp:
+                        fp.write("{}\n".format(json.dumps(sd)))
+                    last_timestamp = sd['timestamp']
+                elif sd['timestamp']== last_timestamp:
+                    cache_list.pop()
+                    cache_list.append(sd['asks'])
+                
+                if all(cache_list):
+                    put_msg = None
+                    if all([ cache_list[i]<cache_list[i+1] for i in range(len(cache_list)-1)]):
+                        put_msg = (sd['timestamp'],"buy",sd['asks'])
+                    elif all([ cache_list[i]>cache_list[i+1] for i in range(len(cache_list)-1)]):
+                        put_msg = (sd['timestamp'],"sell",sd['asks'])
+                    if put_msg:    
+                        trade_q.put(put_msg)
+                        with open("trade_q.log","a") as fp:
+                            fp.write("{}---{}---{}\n".format(*put_msg))
+            elif not last_timestamp:
+                last_timestamp = sd['timestamp']
+                cache_list.pop()
+                cache_list.append(sd['asks'])
+
+            continue
+    
         sd['timesymbol'] = "_".join([sd['timestamp'],sd['symbol'],sd['exchange']])
         with Session() as session:
             ex_id =  session.query(IQuoteOrder.id).filter_by(timesymbol=sd['timesymbol']).first()
-            # print(ex_id)
             if ex_id:
                 session.query(IQuoteOrder).filter(IQuoteOrder.id==ex_id[0]).update({"bids":sd['bids'],"asks":sd['asks']})
             else:
@@ -170,7 +204,7 @@ def save_to_db(q):
                 print(sd)
     
 def start_back_process(flag):
-
+    global q,trade_q
     if flag=="bitmex":
         p1 = Process(target=bitmexWsFun, args=())
         p1.start()
@@ -180,7 +214,7 @@ def start_back_process(flag):
         p2.start()
         return p2
     elif flag=="savedb":
-        p3 = Process(target=save_to_db, args=(q,))
+        p3 = Process(target=save_to_db, args=(q,trade_q))
         p3.start()
         return p3
         
