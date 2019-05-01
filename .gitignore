@@ -7,3 +7,6 @@ sftp-config.json
 /.vs/slnx.sqlite
 config.ini
 test
+*.log
+*.pyx
+Pipfile.lock

@@ -14,7 +14,6 @@ from db.model import Base, SessionContextManager,IQuoteOrder
 import traceback,time
 import json
 from market_maker.bitmex_mon_api import BitMexMon 
-# from binanceApi.BinanceDataApi import BinanceDataAPI
 from binance.websockets import BinanceSocketManager
 from binance.depthcache import DepthCacheManager
 from binance.client import Client
