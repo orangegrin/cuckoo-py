@@ -128,9 +128,6 @@ def get_MAs(data_list, timeperiods):
 
 def plot_figure(f,exchangeA,akey,exchangeB,bkey,symbol):
     
-    
-    
-
     print("########MA-CALC########")
     
     data_list = [i for i in list(f.to_dict().items()) if i[0].strftime("%Y%m%d#%H:%M:%S")[-2:]=="00"]
@@ -152,7 +149,6 @@ def plot_figure(f,exchangeA,akey,exchangeB,bkey,symbol):
     raw_df = pd.DataFrame(f)
     print(raw_df)
     final_df = raw_df.join(min_based_df)
-    
     
 
     plt.subplot(211)
@@ -216,6 +212,6 @@ if __name__ == "__main__":
     with Session() as session:
         
         # plot_exchangeAB(session,"bitmex","asks","binance","bids","XRP",start_date_str="20190416 00:00:00",end_data_str="20190430 00:00:00")
-        plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str="20190416 00:00:00",end_data_str="20190430 08:00:00")
-        plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str="20190416 00:00:00",end_data_str="20190430 08:00:00")
-        plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str="20190416 00:00:00",end_data_str="20190430 00:00:00")
+        plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str="20190416 00:00:00")
+        plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str="20190416 00:00:00")
+        # plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str="20190416 00:00:00",end_data_str="20190430 00:00:00")
