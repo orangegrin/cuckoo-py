@@ -252,21 +252,24 @@ def main():
                     for r in orderbooks:
                         for orderbook in r:
                             q.put(orderbook)
-
+                    
                     while not pingq.empty():
                         pinginfo=pingq.get(block=False)
+                        #pinginfo----('bitmex',155284612231)
                         if pinginfo:
-                            if pinginfo[1] - pingdict[pinginfo[0]]["lastping"] >90:
-                                print("{} : long time no data,restart".format(pinginfo[0]))
-                                try:
-                                    pingdict[pinginfo[0]]["ph"].terminate()
-                                except Exception :
-                                    pass
-                                finally:
-                                    pingdict[pinginfo[0]]["ph"] = start_back_process(pinginfo[0])
-                            else:
-                                print("{} : update ping time {}".format(pinginfo[0],pinginfo[1]))
-                                pingdict[pinginfo[0]]["lastping"] = pinginfo[1]
+                            print("{} : update ping time {}".format(pinginfo[0],pinginfo[1]))
+                            pingdict[pinginfo[0]]["lastping"] = pinginfo[1]
+
+                    for exchangename in pingdict.keys():
+                        if (int(time.time()) - pingdict[exchangename]["lastping"]) >90:
+                            print("{} : long time no data,restart".format(pinginfo[0]))
+                            try:
+                                pingdict[exchangename]["ph"].terminate()
+                            except Exception :
+                                pass
+                            finally:
+                                pingdict[pinginfo[0]]["ph"] = start_back_process(pinginfo[0])
+
                     time.sleep(1)
             except Exception:
                 print(traceback.format_exc())

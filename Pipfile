@@ -19,6 +19,7 @@ matplotlib = "*"
 scipy = "*"
 mplcursors = "*"
 python-binance = "*"
+ta-lib = "*"
 
 [requires]
 python_version = "3.7"

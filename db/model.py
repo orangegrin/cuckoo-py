@@ -76,9 +76,9 @@ class SessionContextManager(Session):
         if not exc_type:
             try:
                 self.commit()
-            except:
+            except Exception as e:
                 if self.raise_commit:
-                    raise
+                    raise e
                 else:
                     print(sys.exc_info()[0])
         else:

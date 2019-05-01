@@ -14,8 +14,9 @@ import traceback,time
 import mplcursors
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy
 from matplotlib import pyplot
-
+import talib
 dburl = URL(**{
     "drivername": "postgresql+psycopg2",
     # "host": "150.109.52.225",
@@ -34,7 +35,8 @@ SYMBOL_MAP={
     "bitmex":{"ETH":"ETHM19","EOS":"EOSM19","XRP":"XRPM19","LTC":"LTCM19"},
     "binance":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
     "gateio":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
-    "okex":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"}
+    "okex":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
+    "fcoin":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"}
 }
 
 def self_reindex(bitmex_l,akey,binance_l,bkey):
@@ -112,25 +114,72 @@ def gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_st
     
     df_reindexed_bitmex = df_reindexed_bitmex.fillna(method='pad')
     df_reindexed_binance = df_reindexed_binance.fillna(method='pad')
-    print(df_reindexed_binance)
-    print(df_reindexed_bitmex)
+    # print(df_reindexed_binance)
+    # print(df_reindexed_bitmex)
     f = df_reindexed_binance/df_reindexed_bitmex-1
     
     return f
 
+def get_MAs(data_list, timeperiods):
+    MAs = []
+    for timeperiod in timeperiods:
+        MAs.append(talib.MA(data_list, timeperiod=timeperiod, matype=0))
+    return MAs
+
 def plot_figure(f,exchangeA,akey,exchangeB,bkey,symbol):
     
+    
+    
+
+    print("########MA-CALC########")
+    
+    data_list = [i for i in list(f.to_dict().items()) if i[0].strftime("%Y%m%d#%H:%M:%S")[-2:]=="00"]
+    vals = [i[1] for i in data_list]
+    index = [i[0] for i in data_list]
+    MAs = get_MAs(numpy.array(vals),[1440, 1440*2, 1440*3, 1440*4])
+    MA_AVG=[]
+    for i in zip(*MAs):
+        if all(i):
+            MA_AVG.append(sum(i)/len(i))
+        else:
+            MA_AVG.append(0)
+    # MA_AVG = [sum(i)/len(i) for i in zip(*MAs) if any(i) else 0]
+    min_based_df=pd.DataFrame({'Diff':vals,'MA1':MAs[0],'MA2':MAs[1],'MA3':MAs[2],'MA4':MAs[3],'MA_AVG':MA_AVG},index=index)
+    min_based_df.fillna(value=0)
+    print(len(data_list))
+    print([len(i) for i in MAs])
+    # min_based_df.plot()
+    raw_df = pd.DataFrame(f)
+    print(raw_df)
+    final_df = raw_df.join(min_based_df)
+    
+    
+
     plt.subplot(211)
-    fig = f.plot()
+    print(index[50],MA_AVG[50])
     maxid = f.idxmax()
     minid = f.idxmin()
+    print(maxid,minid)
     
+    
+    fig = min_based_df.plot()
+    up_marker,down_marker = [],[]
+    for idx in range(1,len(MA_AVG)):
+        if MA_AVG[idx] and MA_AVG[idx-1]:
+            if MA_AVG[idx-1]+0.004 < vals[idx]:
+                up_marker.append([index[idx],vals[idx]])
+            elif MA_AVG[idx-1]-0.004 > vals[idx]:
+                down_marker.append([index[idx],vals[idx]])
+    for i in up_marker:
+        plt.scatter(i[0],i[1],s=40,c="red",marker="p")
+    for i in down_marker:
+        plt.scatter(i[0],i[1],s=40,c="green",marker="p")
     # plt.annotate('max({t},{v})'.format(t = maxid,v=f[maxid]), xy=(maxid, f[maxid]),arrowprops=dict(facecolor='black', shrink=0.05))
     plt.axhline(y=f[maxid],linestyle="--",color="gray")
-    plt.text(maxid,f[maxid],'max({t},{v})'.format(t = maxid,v=f[maxid]))
+    plt.text(maxid,f[maxid],'max({t},{v})'.format(t = maxid.strftime("%Y%m%d#%H:%M:%S") ,v=f[maxid]))
     # plt.annotate('min({t},{v})'.format(t = minid,v=f[minid]), xy=(minid, f[minid]),arrowprops=dict(facecolor='black', shrink=0.05))
     plt.axhline(y=f[minid],linestyle="--",color="gray")
-    plt.text(minid,f[minid],'min({t},{v})'.format(t = minid,v=f[minid]))
+    plt.text(minid,f[minid],'min({t},{v})'.format(t = minid.strftime("%Y%m%d#%H:%M:%S") ,v=f[minid]))
     
     plt.xlabel("Timestamp")
     plt.ylabel("Percent")
@@ -149,14 +198,16 @@ def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=
     nv = np.array(v)
     from scipy.stats import kstest
     print(kstest(nv, 'norm'))
+
     nmean = np.mean(nv)
     nsigma =np.std(nv,ddof=1)
     print(nmean,nsigma,int((nv.max()-nv.min())/nsigma))
-    count, bins, ignored = plt.hist(nv, int((nv.max()-nv.min())/nsigma), density=True)
+
+    _count, bins, _ignored = plt.hist(nv, int((nv.max()-nv.min())/nsigma), density=True)
     fig = plt.plot(bins, 1/(nsigma * np.sqrt(2 * np.pi)) * np.exp( - (bins - nmean)**2 / (2 * nsigma**2) ),linewidth=3, color='y')
     my_x_ticks = np.arange(nv.min(), nv.max(), 0.001)
     plt.xticks(my_x_ticks)
-    # plt.show()
+
     mplcursors.cursor(fig)
     plot_figure(f,exchangeA,akey,exchangeB,bkey,symbol)
 
@@ -164,4 +215,7 @@ if __name__ == "__main__":
 
     with Session() as session:
         
-        plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str="20190416 11:00:00")
+        # plot_exchangeAB(session,"bitmex","asks","binance","bids","XRP",start_date_str="20190416 00:00:00",end_data_str="20190430 00:00:00")
+        plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str="20190416 00:00:00",end_data_str="20190430 08:00:00")
+        plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str="20190416 00:00:00",end_data_str="20190430 08:00:00")
+        plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str="20190416 00:00:00",end_data_str="20190430 00:00:00")
