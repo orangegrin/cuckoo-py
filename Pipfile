@@ -20,6 +20,7 @@ scipy = "*"
 mplcursors = "*"
 python-binance = "*"
 ta-lib = "*"
+sanic = "*"
 
 [requires]
 python_version = "3.7"

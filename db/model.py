@@ -22,7 +22,7 @@ from sqlalchemy.orm import Query, relationship, Session
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import MetaData
 from sqlalchemy.ext.hybrid import hybrid_property
-import sys
+import sys,time
 from multiprocessing import Lock
 
 SCHEMA = 'datastore'
@@ -44,6 +44,22 @@ class IQuoteOrder(Base):
     def to_dict(self):
         properties = ['timesymbol','exchange', 'symbol', 'asks', 'bids','timestamp']
         return {prop: getattr(self, prop, None) for prop in properties}
+
+
+class LPriceDiff(Base):
+    __tablename__ = 'lpricediff'
+
+    id = Column(Integer, primary_key=True,unique=True, autoincrement='auto')
+    symbol = Column(String(16),nullable=False)
+    exchangepair = Column(String(40), nullable=False)
+    value = Column(Float, nullable=False)
+    timestamp = Column(TIMESTAMP(timezone=False), nullable=False)
+    
+    def to_dict(self):
+        properties = ['exchangepair', 'symbol','timestamp','value']
+        dict_t = {prop: getattr(self, prop, None) for prop in properties}
+        dict_t['timestamp'] = int(time.mktime(dict_t['timestamp'].timetuple()))
+        return dict_t
 
 class BKQuoteOrder(Base):
     __tablename__ = 'bkquoteorder'

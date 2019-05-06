@@ -211,7 +211,7 @@ if __name__ == "__main__":
 
     with Session() as session:
         
-        plot_exchangeAB(session,"bitmex","asks","binance","bids","XRP",start_date_str="20190429 00:00:00")
-        plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str="20190429 00:00:00")
-        plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str="20190429 00:00:00")
-        plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str="20190429 00:00:00")
+        # plot_exchangeAB(session,"bitmex","asks","binance","bids","XRP",start_date_str="20190416 00:00:00")
+        plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str="20190426 00:00:00")
+        plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str="20190426 00:00:00")
+        # plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str="20190416 00:00:00")
