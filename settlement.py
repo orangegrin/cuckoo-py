@@ -6,7 +6,7 @@ import time
 import hashlib
 import hmac
 import configparser
-
+import logging
 
 
 
@@ -181,23 +181,51 @@ minus_list = [
     {'asset':'BNB','total':4.08822561},
 ]
 
-# 币安btc余额
-binance_btc_bal = binance_api.walletBalanceBTC()
-# 需要扣除的币种
-binance_btc_minus = binance_api._caculateBtcBal(minus_list)
 
-# 扣除后的余额
-binance_bal = binance_btc_bal - binance_btc_minus
 
-# bitmex 余额
-bitmex_bal = bitmex_api.walletBalanceBTC()
+ 
+# logging.basicConfig(level=logging.DEBUG,
+#                     filename='balance.log',
+#                     datefmt='%Y-%m-%d %H:%M:%S',
+#                     format='%(asctime)s  %(message)s')
 
-# 当前总余额
-total_btc_bal = binance_bal+bitmex_bal
-start_bal = 2.34730272+ 1.08420454
+logger = logging.getLogger(__name__)
 
-print(total_btc_bal)
-print(start_bal)
 
-win_rate = (total_btc_bal-start_bal)/start_bal
-print(win_rate)
+logger.setLevel(level=logging.INFO)
+handler = logging.FileHandler('balance.log')
+formatter = logging.Formatter('%(asctime)s %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+sleep_time = 60*30;
+while True:
+    # 币安btc余额
+    binance_btc_bal = binance_api.walletBalanceBTC()
+    # 需要扣除的币种
+    binance_btc_minus = binance_api._caculateBtcBal(minus_list)
+
+    # 扣除后的余额
+    binance_bal = binance_btc_bal - binance_btc_minus
+
+    # bitmex 余额
+    bitmex_bal = bitmex_api.walletBalanceBTC()
+
+    # 当前总余额
+    latest_bal = binance_bal+bitmex_bal
+    origin_bal = 2.34730272 + 1.08420454
+
+    win_rate = (latest_bal-origin_bal)/origin_bal
+
+    log_data = {
+        'binance_bal':binance_bal,
+        'bitmex_bal':bitmex_bal,
+        'latest_bal':latest_bal,
+        'origin_bal':origin_bal,
+        'win_rate':win_rate
+    }
+
+    log_str = json.dumps(log_data)
+    logger.info(log_str)
+    time.sleep(sleep_time)
+
