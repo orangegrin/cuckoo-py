@@ -214,15 +214,16 @@ while True:
     # 当前总余额
     latest_bal = binance_bal+bitmex_bal
     origin_bal = 2.34730272 + 1.08420454
-
-    win_rate = (latest_bal-origin_bal)/origin_bal
+    win_btc = latest_bal-origin_bal
+    win_rate = win_btc/origin_bal
 
     log_data = {
         'binance_bal':binance_bal,
         'bitmex_bal':bitmex_bal,
         'latest_bal':latest_bal,
         'origin_bal':origin_bal,
-        'win_rate':win_rate
+        'win_btc': win_btc,
+        'win_rate': win_rate
     }
 
     log_str = json.dumps(log_data)
