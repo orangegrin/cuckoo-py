@@ -18,7 +18,7 @@ class BitMEX(object):
     """BitMEX API Connector."""
 
     def __init__(self, base_url=None, symbol=None, apiKey=None, apiSecret=None,
-                 orderIDPrefix='mm_bitmex_', shouldWSAuth=True, postOnly=False, timeout=7,AuthSubTables=None,UnAuthSubTables=None):
+                 orderIDPrefix='mm_bitmex_', shouldWSAuth=True, postOnly=False, timeout=7,WebSocketOn=True,AuthSubTables=None,UnAuthSubTables=None):
         """Init connector."""
         self.logger = logging.getLogger('root')
         self.base_url = base_url
@@ -43,8 +43,10 @@ class BitMEX(object):
         self.session.headers.update({'accept': 'application/json'})
 
         # Create websocket for streaming data
-        self.ws = BitMEXWebsocket(logger=self.logger,AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables)
-        self.ws.connect(base_url, symbol, shouldAuth=shouldWSAuth)
+        self.ws = None
+        if WebSocketOn:
+            self.ws = BitMEXWebsocket(logger=self.logger,AuthSubTables=AuthSubTables,UnAuthSubTables=UnAuthSubTables)
+            self.ws.connect(base_url, symbol, shouldAuth=shouldWSAuth)
 
         self.timeout = timeout
 
@@ -56,7 +58,8 @@ class BitMEX(object):
         self.exit()
 
     def exit(self):
-        self.ws.exit()
+        if self.ws:
+            self.ws.exit()
 
     #
     # Public methods
@@ -76,6 +79,13 @@ class BitMEX(object):
         if filter is not None:
             query['filter'] = json.dumps(filter)
         return self._curl_bitmex(path='instrument', query=query, verb='GET')
+
+    def http_get_kline(self, filter=None,query = {}):
+        
+        # binSize=1m&partial=false&symbol=XBTM19&count=100&reverse=false&startTime=2019-05-10
+        if filter is not None:
+            query['filter'] = json.dumps(filter)
+        return self._curl_bitmex(path='trade/bucketed', query=query, verb='GET')
 
     def market_depth(self, symbol):
         """Get market depth / orderbook."""
@@ -191,17 +201,26 @@ class BitMEX(object):
     @authentication_required
     def http_open_orders(self):
         """Get open orders via HTTP. Used on close to ensure we catch them all."""
+        filter_dict = {'ordStatus.isTerminated': False, 'symbol': self.symbol}
+        return self.http_get_orders(filter_dict)
+    
+    @authentication_required
+    def http_get_orders(self,filter_dict,all_order=False):
+        """Get open orders via HTTP. Used on close to ensure we catch them all."""
         path = "order"
         orders = self._curl_bitmex(
             path=path,
             query={
-                'filter': json.dumps({'ordStatus.isTerminated': False, 'symbol': self.symbol}),
+                'filter': json.dumps(filter_dict),
                 'count': 500
             },
             verb="GET"
         )
         # Only return orders that start with our clOrdID prefix.
-        return [o for o in orders if str(o['clOrdID']).startswith(self.orderIDPrefix)]
+        if all_order:
+            return orders
+        else:
+            return [o for o in orders if str(o['clOrdID']).startswith(self.orderIDPrefix)]
 
     @authentication_required
     def cancel(self, orderID,cancel_all=False):

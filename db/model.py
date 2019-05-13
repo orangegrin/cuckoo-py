@@ -77,6 +77,26 @@ class BKQuoteOrder(Base):
         properties = ['timesymbol','exchange', 'symbol', 'asks', 'bids','timestamp']
         return {prop: getattr(self, prop, None) for prop in properties}
 
+class TradeHistory(Base):
+    __tablename__ = 'tradehistory'
+
+    id = Column(Integer, primary_key=True,unique=True, autoincrement='auto')
+    orderid = Column(String(48), unique=True)
+    accountid = Column(Integer, nullable=False)
+    symbol = Column(String(16),nullable=False)
+    side = Column(String(8),nullable=False)
+    price = Column(Float, nullable=False)
+    orderqty = Column(Integer, nullable=False)
+    extratext = Column(String(128))
+    transactTime = Column(TIMESTAMP(timezone=False), nullable=False)
+    timestamp = Column(TIMESTAMP(timezone=False), nullable=False)
+    
+#     def to_dict(self):
+#         properties = ['exchangepair', 'symbol','timestamp','value']
+#         dict_t = {prop: getattr(self, prop, None) for prop in properties}
+#         dict_t['timestamp'] = int(time.mktime(dict_t['timestamp'].timetuple()))
+#         return dict_t
+
 class SessionContextManager(Session):
 
     def __init__(self, *args, raise_commit=True, **kwargs):

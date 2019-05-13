@@ -9,14 +9,19 @@ import ccxt.async_support as ccxt  # noqa: E402
 from sqlalchemy.engine.url import URL
 from sqlalchemy import create_engine,and_
 from sqlalchemy.orm import sessionmaker
-from db.model import Base, SessionContextManager,BKQuoteOrder
+from db.model import Base, SessionContextManager,BKQuoteOrder,TradeHistory
 import traceback,time
 import mplcursors
 import matplotlib.pyplot as plt
 import pandas as pd
+from pandas.plotting import register_matplotlib_converters
 import numpy
 from matplotlib import pyplot
 import talib
+from binance.client import Client
+
+from market_maker.bitmex_mon_api import BitMexMon
+
 dburl = URL(**{
     "drivername": "postgresql+psycopg2",
     # "host": "150.109.52.225",
@@ -32,7 +37,7 @@ Session = sessionmaker(bind=engine, class_=SessionContextManager)
 Base.metadata.create_all(bind=engine)
 
 SYMBOL_MAP={
-    "bitmex":{"ETH":"ETHM19","EOS":"EOSM19","XRP":"XRPM19","LTC":"LTCM19"},
+    "bitmex":{"ETH":"ETHM19","EOS":"EOSM19","XRP":"XRPM19","LTC":"LTCM19","BTCM":"XBTM19","BTCU":"XBTU19"},
     "binance":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
     "gateio":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
     "okex":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
@@ -69,7 +74,11 @@ def gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_st
     # 
     if not end_data_str:
         end_data_str = datetime.fromtimestamp(time.time()).strftime("%Y%m%d %H:%M:%S") 
+    if symbol=='BTC':
+        symbol='BTCM'
     bitmex = session.query(BKQuoteOrder).filter_by(exchange=exchangeA,symbol=SYMBOL_MAP[exchangeA][symbol]).filter(and_(BKQuoteOrder.timestamp>=start_date_str,BKQuoteOrder.timestamp<=end_data_str)).order_by(BKQuoteOrder.timestamp.asc()).all()
+    if symbol=='BTC':
+        symbol='BTCU'
     binance = session.query(BKQuoteOrder).filter_by(exchange=exchangeB,symbol=SYMBOL_MAP[exchangeB][symbol]).filter(and_(BKQuoteOrder.timestamp>=start_date_str,BKQuoteOrder.timestamp<=end_data_str)).order_by(BKQuoteOrder.timestamp.asc()).all()
     
     bitmex_l = [x.to_dict() for x in bitmex]
@@ -114,8 +123,7 @@ def gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_st
     
     df_reindexed_bitmex = df_reindexed_bitmex.fillna(method='pad')
     df_reindexed_binance = df_reindexed_binance.fillna(method='pad')
-    # print(df_reindexed_binance)
-    # print(df_reindexed_bitmex)
+  
     f = df_reindexed_binance/df_reindexed_bitmex-1
     
     return f
@@ -126,59 +134,104 @@ def get_MAs(data_list, timeperiods):
         MAs.append(talib.MA(data_list, timeperiod=timeperiod, matype=0))
     return MAs
 
-def plot_figure(f,exchangeA,akey,exchangeB,bkey,symbol):
+def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
     
     print("########MA-CALC########")
-    
+    register_matplotlib_converters()
+
     data_list = [i for i in list(f.to_dict().items()) if i[0].strftime("%Y%m%d#%H:%M:%S")[-2:]=="00"]
     vals = [i[1] for i in data_list]
     index = [i[0] for i in data_list]
-    MAs = get_MAs(numpy.array(vals),[1440, 1440*2, 1440*3, 1440*4])
-    MA_AVG=[]
-    for i in zip(*MAs):
-        if all(i):
-            MA_AVG.append(sum(i)/len(i))
-        else:
-            MA_AVG.append(0)
-    # MA_AVG = [sum(i)/len(i) for i in zip(*MAs) if any(i) else 0]
-    min_based_df=pd.DataFrame({'Diff':vals,'MA1':MAs[0],'MA2':MAs[1],'MA3':MAs[2],'MA4':MAs[3],'MA_AVG':MA_AVG},index=index)
-    min_based_df.fillna(value=0)
-    print(len(data_list))
-    print([len(i) for i in MAs])
-    # min_based_df.plot()
-    raw_df = pd.DataFrame(f)
-    print(raw_df)
-    final_df = raw_df.join(min_based_df)
     
+    #calc MAs and MA_avg
+    if False:
+        MAs = get_MAs(numpy.array(vals),[1440, 1440*2, 1440*3, 1440*4])
+        MA_AVG=[]
+        for i in zip(*MAs):
+            if all(i):
+                MA_AVG.append(sum(i)/len(i))
+            else:
+                MA_AVG.append(0)
+        # MA_AVG = [sum(i)/len(i) for i in zip(*MAs) if any(i) else 0]
+        min_based_df=pd.DataFrame({'Diff':vals,'MA1':MAs[0],'MA2':MAs[1],'MA3':MAs[2],'MA4':MAs[3],'MA_AVG':MA_AVG},index=index)
 
-    plt.subplot(211)
-    print(index[50],MA_AVG[50])
+    
+        min_based_df.fillna(value=0)
+        print(len(data_list))
+        print([len(i) for i in MAs])
+        # min_based_df.plot()
+        raw_df = pd.DataFrame(f)
+        print(raw_df)
+        final_df = raw_df.join(min_based_df)
+    
+    # fig,ax1 = plt.subplot(211)
+    fig,ax1 = plt.subplots()
     maxid = f.idxmax()
     minid = f.idxmin()
     print(maxid,minid)
     
+    # fig = min_based_df.plot()
     
-    fig = min_based_df.plot()
-    up_marker,down_marker = [],[]
-    for idx in range(1,len(MA_AVG)):
-        if MA_AVG[idx] and MA_AVG[idx-1]:
-            if MA_AVG[idx-1]+0.004 < vals[idx]:
-                up_marker.append([index[idx],vals[idx]])
-            elif MA_AVG[idx-1]-0.004 > vals[idx]:
-                down_marker.append([index[idx],vals[idx]])
-    for i in up_marker:
-        plt.scatter(i[0],i[1],s=40,c="red",marker="p")
-    for i in down_marker:
-        plt.scatter(i[0],i[1],s=40,c="green",marker="p")
-    # plt.annotate('max({t},{v})'.format(t = maxid,v=f[maxid]), xy=(maxid, f[maxid]),arrowprops=dict(facecolor='black', shrink=0.05))
-    plt.axhline(y=f[maxid],linestyle="--",color="gray")
-    plt.text(maxid,f[maxid],'max({t},{v})'.format(t = maxid.strftime("%Y%m%d#%H:%M:%S") ,v=f[maxid]))
-    # plt.annotate('min({t},{v})'.format(t = minid,v=f[minid]), xy=(minid, f[minid]),arrowprops=dict(facecolor='black', shrink=0.05))
-    plt.axhline(y=f[minid],linestyle="--",color="gray")
-    plt.text(minid,f[minid],'min({t},{v})'.format(t = minid.strftime("%Y%m%d#%H:%M:%S") ,v=f[minid]))
+    #plot 1min kline data
+    if True:
+        
+        ax1.plot([ datetime.fromtimestamp(i.value/1000000000) for i in index],vals,'b-')
+
+        ax2 = ax1.twinx()
+        ax2.set_ylabel("price")
+        kline_bitmex_data = get_bitmex_kline_data("ETHM19",binSize="1m",start_time=datetime.fromtimestamp(index[0].value/1000000000))
+        kline_binance_data = get_binance_kline_data('ETHBTC',start_time=int(index[0].value/1000000))
+        x1,y1=[],[]
+        for i in kline_bitmex_data:
+            if i.get('close',0) is None or i.get('open',0) is None:
+                continue
+            x1.append(i['timestamp'])
+            y1.append((i.get('close',0)+i.get('open',0))/2)
+        ax2.plot(x1, y1, 'g-')
+        x2,y2=[],[]
+        for i in kline_binance_data:
+            if i.get('close',0) is None or i.get('open',0) is None:
+                continue
+            x2.append(i['timestamp'])
+            y2.append((float(i['close'])+float(i['open']))/2)
+        ax2.plot(x2, y2, 'y-')
+
+    #plot buy/sell chance point
+    if False:
+        up_marker,down_marker = [],[]
+        for idx in range(1,len(MA_AVG)):
+            if MA_AVG[idx] and MA_AVG[idx-1]:
+                if MA_AVG[idx-1]+0.004 < vals[idx]:
+                    up_marker.append([index[idx],vals[idx]])
+                elif MA_AVG[idx-1]-0.004 > vals[idx]:
+                    down_marker.append([index[idx],vals[idx]])
+        for i in up_marker:
+            plt.scatter(i[0],i[1],s=40,c="red",marker="p")
+        for i in down_marker:
+            plt.scatter(i[0],i[1],s=40,c="green",marker="p")
     
-    plt.xlabel("Timestamp")
-    plt.ylabel("Percent")
+    #plot real trade point
+    if True:
+        trade_points = get_trade_point_from_db(session,'ETHM19',index[0].strftime("%Y%m%dT%H:%M:%S"))
+        for p in trade_points:
+            color = 'red' if p['side'] == 'Buy' else 'black'
+            plt.scatter(p['timestamp'],p['value'],s=40,c=color,marker="p")
+            # plt.axvline(x=p['timestamp'], label='trade at x = {}'.format(p['timestamp'].strftime("%Y%m%dT%H:%M:%S")), c=color)
+
+
+    #plot max/min point
+    if False:
+        plt.annotate('max({t},{v})'.format(t = maxid,v=f[maxid]), xy=(maxid, f[maxid]),arrowprops=dict(facecolor='black', shrink=0.05))
+        plt.axhline(y=f[maxid],linestyle="--",color="gray")
+        plt.text(maxid,f[maxid],'max({t},{v})'.format(t = maxid.strftime("%Y%m%d#%H:%M:%S") ,v=f[maxid]))
+
+        plt.annotate('min({t},{v})'.format(t = minid,v=f[minid]), xy=(minid, f[minid]),arrowprops=dict(facecolor='black', shrink=0.05))
+        plt.axhline(y=f[minid],linestyle="--",color="gray")
+        plt.text(minid,f[minid],'min({t},{v})'.format(t = minid.strftime("%Y%m%d#%H:%M:%S") ,v=f[minid]))
+    
+    ax1.set_xlabel("Timestamp")
+    ax1.set_ylabel("Percent")
+    
     plt.title("{symbol}---{EB}[{BK}]/{EA}[{AK}]-1".format(symbol=symbol,EA=exchangeA,AK=akey,EB=exchangeB,BK=bkey))
     mplcursors.cursor(fig)
     plt.subplots_adjust(hspace=1)
@@ -187,31 +240,87 @@ def plot_figure(f,exchangeA,akey,exchangeB,bkey,symbol):
 def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="20190411 18:00:00",end_data_str=None):
     f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=start_date_str,end_data_str=end_data_str)
     
+    #plot hist figure
+    if False:
+        plt.subplot(212)
+        v = list(f.to_dict().values())
+        import numpy as np
+        nv = np.array(v)
+        from scipy.stats import kstest
+        print(kstest(nv, 'norm'))
+
+        nmean = np.mean(nv)
+        nsigma =np.std(nv,ddof=1)
+        print(nmean,nsigma,int((nv.max()-nv.min())/nsigma))
+
+        _count, bins, _ignored = plt.hist(nv, int((nv.max()-nv.min())/nsigma), density=True)
+        fig = plt.plot(bins, 1/(nsigma * np.sqrt(2 * np.pi)) * np.exp( - (bins - nmean)**2 / (2 * nsigma**2) ),linewidth=3, color='y')
+        my_x_ticks = np.arange(nv.min(), nv.max(), 0.001)
+        plt.xticks(my_x_ticks)
+
+        mplcursors.cursor(fig)
+
+    plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol)
+
+def get_bitmex_kline_data(symbol,binSize="1m",start_time=None):
+
+    bitmex_mon = BitMexMon(symbol,UnAuthSubTables=[],AuthSubTables=[],WebSocketOn=False)
+    diff_mins = (datetime.now()-start_time).total_seconds()/60
+    print(diff_mins)
+    ret_n = []
+    for loopnum in range(0,int(diff_mins/600+1)):
+        if loopnum == 0:
+            query_start_datetime = start_time 
+        else:
+            query_start_datetime = start_time + timedelta(minutes=(600*loopnum))
+        print(query_start_datetime)
+            
+        ret = bitmex_mon.bitmex.http_get_kline(query={"binSize":"1m","partial":False,"symbol":symbol,"count":600,"reverse":"false","startTime":query_start_datetime.strftime("%Y-%m-%dT%H:%M")})
+        for i in ret:
+            i['timestamp'] = datetime.strptime(i['timestamp'].split('.')[0],"%Y-%m-%dT%H:%M:%S")
+            ret_n.append(i)
+    return ret_n
+
+def get_binance_kline_data(symbol,binSize=Client.KLINE_INTERVAL_1MINUTE,start_time=""):
     
-    plt.subplot(212)
-    v = list(f.to_dict().values())
-    import numpy as np
-    nv = np.array(v)
-    from scipy.stats import kstest
-    print(kstest(nv, 'norm'))
+    client = Client("api_key", "api_secret")
+    ret = client.get_historical_klines(symbol, binSize, start_time)
+    ret_n = []
+    for i in ret:
+        t = {}
+        t['timestamp'] = datetime.fromtimestamp(i[0]/1000)
+        t['close'] = i[1]
+        t['open'] = i[4]
+        ret_n.append(t)
+    return ret_n
 
-    nmean = np.mean(nv)
-    nsigma =np.std(nv,ddof=1)
-    print(nmean,nsigma,int((nv.max()-nv.min())/nsigma))
-
-    _count, bins, _ignored = plt.hist(nv, int((nv.max()-nv.min())/nsigma), density=True)
-    fig = plt.plot(bins, 1/(nsigma * np.sqrt(2 * np.pi)) * np.exp( - (bins - nmean)**2 / (2 * nsigma**2) ),linewidth=3, color='y')
-    my_x_ticks = np.arange(nv.min(), nv.max(), 0.001)
-    plt.xticks(my_x_ticks)
-
-    mplcursors.cursor(fig)
-    plot_figure(f,exchangeA,akey,exchangeB,bkey,symbol)
+def get_trade_point_from_db(session,symbol,start_time_str):
+    # 'symbol': 'ETHM19',
+    # {'orderID': '1fe51f92-7a48-5c81-0e41-2921483ccaf2', 'clOrdID': '', 'clOrdLinkID': '', 'account': 63450, 'symbol': 'ETHM19', 'side': 'Buy', 'simpleOrderQty': None, 'orderQty': 5, 'price': 0.02883, 'displayQty': None, 'stopPx': None, 'pegOffsetValue': None, 'pegPriceType': '', 'currency': 'XBT', 'settlCurrency': 'XBt', 'ordType': 'Limit', 'timeInForce': 'GoodTillCancel', 'execInst': 'ParticipateDoNotInitiate', 'contingencyType': '', 'exDestination': 'XBME', 'ordStatus': 'Filled', 'triggered': '', 'workingIndicator': False, 'ordRejReason': '', 'simpleLeavesQty': None, 'leavesQty': 0, 'simpleCumQty': None, 'cumQty': 5, 'avgPx': 0.02883, 'multiLegReportingType': 'SingleSecurity', 'text': 'Submission from www.bitmex.com', 'transactTime': '2019-05-09T02:42:00.904Z', 'timestamp': '2019-05-09T03:14:04.093Z'}
+    ret = []
+    trade_orders = session.query(TradeHistory).filter_by(symbol=symbol).filter(TradeHistory.timestamp>start_time_str).all()
+    if trade_orders:
+        for tod in trade_orders:
+            try:
+                ret.append({"timestamp":tod.timestamp,'value':tod.price,'side':tod.side})
+            except Exception:
+                print(traceback.format_exc())
+                continue
+    print(ret)
+    
+    return ret
 
 if __name__ == "__main__":
-
+    
+    # get_binance_kline_data('ETHBTC',start_time=1557569880000)
+    # ret = get_bitmex_kline_data('ETHM19',start_time=datetime(2019,5,11,0,0))
+    # print(len(ret))
+    # get_trade_point_from_bitmex('ETHM19')
+    # time.sleep(1000)
     with Session() as session:
-        
+        # get_trade_point_from_db(session,'ETHM19')
         # plot_exchangeAB(session,"bitmex","asks","binance","bids","XRP",start_date_str="20190416 00:00:00")
-        plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str="20190426 00:00:00")
-        plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str="20190426 00:00:00")
+        plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str="20190511 00:00:00")
+        # plot_exchangeAB(session,"bitmex","asks","bitmex","bids","BTC",start_date_str="20190513 00:00:00")
+        # plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str="20190501 00:00:00")
         # plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str="20190416 00:00:00")

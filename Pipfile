@@ -5,6 +5,8 @@ verify_ssl = true
 
 [dev-packages]
 pylint = "*"
+autopep8 = "*"
+v = {editable = true,version = "*"}
 
 [packages]
 three = "*"
@@ -21,6 +23,7 @@ mplcursors = "*"
 python-binance = "*"
 ta-lib = "*"
 sanic = "*"
+tensorflow = "*"
 
 [requires]
 python_version = "3.7"

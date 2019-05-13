@@ -10,7 +10,7 @@ import ccxt.async_support as ccxt  # noqa: E402
 from sqlalchemy.engine.url import URL
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from db.model import Base, SessionContextManager,IQuoteOrder
+from db.model import Base, SessionContextManager,IQuoteOrder,TradeHistory
 import traceback,time
 import json
 from market_maker.bitmex_mon_api import BitMexMon 
@@ -24,7 +24,7 @@ import fcoin
 from fcoin.WebsocketClient import WebsocketClient
 
 exchange='bitmex'
-symbol=['ETHM19','LTCM19','EOSM19','XRPM19','TRXM19']
+symbol=['ETHM19','LTCM19','EOSM19','XRPM19','TRXM19','XBTM19','XBTU19']
 symbol_ch_dict={"bitmex":{"XBTUSD":"BTCUSD"}}
 data_cache={}
 sanity_data_cach={}
@@ -184,7 +184,29 @@ def fcoinWsFun():
     ws = WebsocketClient()
     ws.handle_fun = save_fcoin_orderbook
     ws.sub(FCOIN_TOPICS)
-  
+
+def log_trade_history_from_bitmex(session):
+    #
+    # {'orderID': '1fe51f92-7a48-5c81-0e41-2921483ccaf2', 'clOrdID': '', 'clOrdLinkID': '', 'account': 63450, 'symbol': 'ETHM19', 'side': 'Buy', 'simpleOrderQty': None, 'orderQty': 5, 'price': 0.02883, 'displayQty': None, 'stopPx': None, 'pegOffsetValue': None, 'pegPriceType': '', 'currency': 'XBT', 'settlCurrency': 'XBt', 'ordType': 'Limit', 'timeInForce': 'GoodTillCancel', 'execInst': 'ParticipateDoNotInitiate', 'contingencyType': '', 'exDestination': 'XBME', 'ordStatus': 'Filled', 'triggered': '', 'workingIndicator': False, 'ordRejReason': '', 'simpleLeavesQty': None, 'leavesQty': 0, 'simpleCumQty': None, 'cumQty': 5, 'avgPx': 0.02883, 'multiLegReportingType': 'SingleSecurity', 'text': 'Submission from www.bitmex.com', 'transactTime': '2019-05-09T02:42:00.904Z', 'timestamp': '2019-05-09T03:14:04.093Z'}
+    
+    try:
+        bitmex_mon = BitMexMon(symbol,UnAuthSubTables=[],AuthSubTables=[],WebSocketOn=False)
+        orders = bitmex_mon.bitmex.http_get_orders({},all_order=True)
+        for od in orders:
+            if od.get('ordStatus',None) == 'Filled':
+                try:
+                    tmp_od = {'symbol': od['symbol'], 'side': od['side'],'price': od['price'], 'orderid': od['orderID'], 'accountid': od['account'], 'orderqty': od['orderQty'], 'extratext': od['text'],'timestamp': datetime.datetime.strptime(od['timestamp'].split('.')[0],"%Y-%m-%dT%H:%M:%S"),'transactTime': datetime.datetime.strptime(od['transactTime'].split('.')[0],"%Y-%m-%dT%H:%M:%S")}
+                    ex_id =  session.query(TradeHistory.id).filter_by(orderid=tmp_od['orderID']).first()
+                    if ex_id:
+                        continue
+                    else:
+                        print(tmp_od)
+                        session.add(TradeHistory(**tmp_od))
+                except Exception:
+                    print(traceback.format_exc())
+                    continue
+    except Exception:
+        print(traceback.format_exc())            
 
 def save_to_db(q):
 
@@ -201,6 +223,7 @@ def save_to_db(q):
         Session = sessionmaker(bind=engine, class_=SessionContextManager)
         Base.metadata.create_all(bind=engine)
         
+        log_trade_ts = None
         while True:
             sd = q.get()
             sd['timesymbol'] = "_".join([sd['timestamp'],sd['symbol'],sd['exchange']])
@@ -212,6 +235,10 @@ def save_to_db(q):
                 else:
                     session.add(IQuoteOrder(**sd))
                     print(sd)
+            if log_trade_ts == None or (time.time() - log_trade_ts) > 60*60*12:
+                  log_trade_ts  = time.time()
+                  log_trade_history_from_bitmex(session)
+
     except Exception :
         print(traceback.format_exc())
         os._exit(1)
@@ -305,5 +332,10 @@ def main():
 if __name__ == "__main__":
 
     main()
+    # bitmex_mon = BitMexMon(symbol,UnAuthSubTables=DefaultUnAuthSubTables,AuthSubTables=DefaultAuthSubTables,WebSocketOn=False)
+    # filter_dict = {}
+    # filled_orders = bitmex_mon.bitmex.http_get_orders(filter_dict,all_order=True)
+    # tar_info = [{'symbol': i['symbol'], 'side': i['side'],'price': i['price'],'timestamp': i['timestamp']} for i in filled_orders]
+    # print(tar_info)
 
     
