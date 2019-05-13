@@ -45,7 +45,6 @@ class BitmexApi(object):
             verb="GET"
         )
 
-        print(resp_data)
 
 class BinanceApi(object):
     def __init__(self, api_key, api_secret):
@@ -107,7 +106,6 @@ class BinanceApi(object):
         params = {}
         params['timestamp'] = int(round(time.time() * 1000))
         info = self._query(method='GET',path=path,params=params,auth=True)
-        print(info)
         balances = info['balances']
         length = len(balances)
         none_zero_bal = []
