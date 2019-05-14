@@ -10,10 +10,9 @@ import logging
 
 
 class BitmexApi(object):
-    
+        
     def __init__(self, api_key, api_secret):
         self.bitmex_obj = BitMEX(base_url='https://www.bitmex.com/api/v1/', symbol='XBTUSD', apiKey=api_key, apiSecret=api_secret, RestOnly=True)
-
 
     # 获取账号余额，以BTC计价
     def walletBalanceBTC(self):

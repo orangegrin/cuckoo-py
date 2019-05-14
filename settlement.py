@@ -7,8 +7,8 @@ import hashlib
 import hmac
 import configparser
 import logging
-from exchange_api import BinanceApi
-from exchange_api import BitmexApi
+from monitor.exchange_api import BinanceApi
+from monitor.exchange_api import BitmexApi
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -33,7 +33,7 @@ minus_list = [
 logger = logging.getLogger(__name__)
 
 logger.setLevel(level=logging.INFO)
-handler = logging.FileHandler('balance.log')
+handler = logging.FileHandler('log/balance.log')
 formatter = logging.Formatter('%(asctime)s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
