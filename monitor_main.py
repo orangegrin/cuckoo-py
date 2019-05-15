@@ -89,7 +89,7 @@ class MonitorCuckoo(object):
         
 
     def get_config(self):
-        file = "../workspace/config.json"
+        file = "../workspace/run.json"
         with open(file,'r') as load_f:
             config = json.load(load_f)
             return config
@@ -108,9 +108,9 @@ class MonitorCuckoo(object):
 cuckoo = MonitorCuckoo()
 sleep_time = 60
 
-# while True:
-#     run()
-#     time.sleep(sleep_time)
+while True:
+    cuckoo.run()
+    time.sleep(sleep_time)
 
 
-cuckoo.run()
+# cuckoo.run()
