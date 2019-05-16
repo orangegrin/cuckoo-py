@@ -23,12 +23,16 @@ binance_secret = config.get('binance','api_secret')
 binance_api = BinanceApi(binance_key,binance_secret)
 bitmex_api = BitmexApi(api_key,api_secret)
 
-minus_list = [
-    {'asset':'EOS','total':1060},
-    {'asset':'XRP','total':1000},
-    {'asset':'ETH','total':46},
-    {'asset':'BNB','total':4.08822561},
-]
+
+
+json_file = "settlement.json"
+with open(json_file,'r') as load_f:
+    config_json = json.load(load_f)
+
+binance_origin_bal = config_json['origin_bal']['binance']
+minus_bal = dict(config_json['origin_bal']['binance'])
+minus_bal.pop('BTC')
+minus_list = minus_bal.values()
 
 logger = logging.getLogger(__name__)
 
@@ -41,28 +45,29 @@ logger.addHandler(handler)
 sleep_time = 60*30;
 while True:
     # 币安btc余额
-    binance_btc_bal = binance_api.walletBalanceBTC()
+    binance_total_bal = binance_api.walletBalanceBTC()
     # 需要扣除的币种
     binance_btc_minus = binance_api._caculateBtcBal(minus_list)
 
     # 扣除后的余额
-    binance_bal = binance_btc_bal - binance_btc_minus
+    binance_bal = binance_total_bal - binance_btc_minus
 
     # bitmex 余额
     bitmex_bal = bitmex_api.walletBalanceBTC()
 
     # 当前总余额
     latest_bal = binance_bal+bitmex_bal
-    origin_bal = 2.34730272 + 1.08420454
-    win_btc = latest_bal-origin_bal
-    win_rate = win_btc/origin_bal
+    origin_bal = config_json['origin_bal']['binance']['BTC']['total'] + config_json['origin_bal']['bitmex']['BTC']['total']
+    win_bal = latest_bal-origin_bal
+    win_rate = win_bal/origin_bal
 
     log_data = {
+        'binance_total_bal':binance_total_bal,
         'binance_bal':binance_bal,
         'bitmex_bal':bitmex_bal,
         'latest_bal':latest_bal,
         'origin_bal':origin_bal,
-        'win_btc': win_btc,
+        'win_bal': win_bal,
         'win_rate': win_rate
     }
 

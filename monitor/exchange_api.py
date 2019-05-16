@@ -58,9 +58,9 @@ class BinanceApi(object):
     def _caculateBtcBal(self,all_bal):
         length = len(all_bal)
         total_btc = 0
-        for i in range(length):
-            asset = all_bal[i]['asset']
-            amount = all_bal[i]['total']
+        for bal in all_bal:
+            asset = bal['asset']
+            amount = bal['total']
             if asset == 'BTC':
                 total_btc += amount
                 continue

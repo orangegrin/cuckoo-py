@@ -26,8 +26,6 @@ class MonitorCuckoo(object):
         self.logger = logger
 
 
-
-
     def send_voice(self,pid):
         mobiles = [
             "15390099793", #jim
@@ -44,7 +42,7 @@ class MonitorCuckoo(object):
                 ret_str = json.dumps(ret)
             else:
                 ret_str = ""
-            self.logger.info(mb+ "pid: "+ pid + " " +ret_str)
+            self.logger.info(mb+ " pid: "+ pid + " " +ret_str)
 
     def check_proc(self,config):
         enable = config['enable']
@@ -56,7 +54,7 @@ class MonitorCuckoo(object):
 
         if exist == True:
             return True
-        self.send_voice(pid)
+        self.send_voice(config['id'])
         return False
 
     def check_pid(self,pid):
@@ -107,10 +105,11 @@ class MonitorCuckoo(object):
 
 cuckoo = MonitorCuckoo()
 sleep_time = 60
+cuckoo.run()
 
-while True:
-    cuckoo.run()
-    time.sleep(sleep_time)
+#while True:
+#    cuckoo.run()
+#    time.sleep(sleep_time)
 
 
 # cuckoo.run()

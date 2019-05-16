@@ -16,3 +16,4 @@ Pipfile.lock
 *.log
 log
 monitor.json
+settlement.json
