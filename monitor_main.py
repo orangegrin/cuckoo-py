@@ -6,6 +6,7 @@ from monitor.qcloud import Qcloud
 import os
 import errno
 import sys
+import time
 
 class MonitorCuckoo(object):
     def __init__(self):
@@ -24,25 +25,29 @@ class MonitorCuckoo(object):
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         self.logger = logger
+        self.warn_time = {}
 
 
     def send_voice(self,pid):
-        mobiles = [
-            "15390099793", #jim
-            "18011562820", #quiz
-            "15680720878", #xinhang
-            "18009082041", #tzq
-            "18080818462", #xiaobo
-        ]
-        enable_voice = self.config.get('monitor','enable_voice')
+        # mobiles = [
+        #     "15390099793", #jim
+        #     "18011562820", #quiz
+        #     "15680720878", #xinhang
+        #     "18009082041", #tzq
+        #     "18080818462", #xiaobo
+        # ]
+
+        monitor_config = self.get_monitor_config()
+        mobiles = monitor_config['mobiles']
+        enable_voice = monitor_config['enable_voice']
         pid = str(pid)
         for mb in mobiles:
-            if enable_voice == "1":
+            if enable_voice == True:
                 ret = self.qcloud_obj.tpl_voice(329543,[pid],mb)
                 ret_str = json.dumps(ret)
             else:
                 ret_str = ""
-            self.logger.info(mb+ " pid: "+ pid + " " +ret_str)
+            self.logger.info(mb+ " id:"+ pid + " " +ret_str)
 
     def check_proc(self,config):
         enable = config['enable']
@@ -54,7 +59,34 @@ class MonitorCuckoo(object):
 
         if exist == True:
             return True
-        self.send_voice(config['id'])
+
+        progress_id = config['id']
+        cur_time = time.time()
+
+        time_check = self.warn_time_check(progress_id,cur_time)
+        if time_check == True:
+            self.send_voice(progress_id)
+            return True
+        return False
+    
+
+    # 返回 True 表示 需要 发送语音报警
+    def warn_time_check(self,pid,cur_time):
+        pid = str(pid)
+
+        if pid not in self.warn_time:
+            self.warn_time[pid] = {
+                "time": cur_time
+            }
+            return True
+
+        last_time  = self.warn_time[pid]['time']
+
+        # 半小时重复报警
+        if cur_time-last_time > 1800:
+            self.warn_time[pid]['time'] = cur_time
+            return True
+
         return False
 
     def check_pid(self,pid):
@@ -92,6 +124,12 @@ class MonitorCuckoo(object):
             config = json.load(load_f)
             return config
 
+    def get_monitor_config(self):
+        file = "monitor.json"
+        with open(file,'r') as load_f:
+            monitor_config = json.load(load_f)
+            return monitor_config
+
     def run(self):
         config_json = self.get_config()
         for value in config_json.values():
@@ -105,11 +143,9 @@ class MonitorCuckoo(object):
 
 cuckoo = MonitorCuckoo()
 sleep_time = 60
-cuckoo.run()
 
-#while True:
-#    cuckoo.run()
-#    time.sleep(sleep_time)
+while True:
+   cuckoo.run()
+   time.sleep(sleep_time)
 
 
-# cuckoo.run()
