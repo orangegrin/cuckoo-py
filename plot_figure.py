@@ -9,7 +9,7 @@ import ccxt.async_support as ccxt  # noqa: E402
 from sqlalchemy.engine.url import URL
 from sqlalchemy import create_engine,and_
 from sqlalchemy.orm import sessionmaker
-from db.model import Base, SessionContextManager,BKQuoteOrder,TradeHistory
+from db.model import Base, SessionContextManager,BKQuoteOrder,IQuoteOrder,TradeHistory
 import traceback,time
 import mplcursors
 import matplotlib.pyplot as plt
@@ -24,9 +24,9 @@ from market_maker.bitmex_mon_api import BitMexMon
 
 dburl = URL(**{
     "drivername": "postgresql+psycopg2",
-    # "host": "150.109.52.225",
+    "host": "150.109.52.225",
     # "host": "198.13.38.21",
-    "host": "127.0.0.1",
+    # "host": "127.0.0.1",
     "port": 5432,
     "username": "ray",
     "password": "yqll",
@@ -139,12 +139,15 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
     print("########MA-CALC########")
     register_matplotlib_converters()
 
-    data_list = [i for i in list(f.to_dict().items()) if i[0].strftime("%Y%m%d#%H:%M:%S")[-2:]=="00"]
+    # data_list = [i for i in list(f.to_dict().items()) if i[0].strftime("%Y%m%d#%H:%M:%S")[-2:]=="00"]
+    f =  f.resample('1min',closed='left',label='left').mean() 
+    data_list = [i for i in list(f.to_dict().items())] 
     vals = [i[1] for i in data_list]
     index = [i[0] for i in data_list]
     
     #calc MAs and MA_avg
-    if False:
+    fig=None
+    if True:
         MAs = get_MAs(numpy.array(vals),[1440, 1440*2, 1440*3, 1440*4])
         MA_AVG=[]
         for i in zip(*MAs):
@@ -159,24 +162,16 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
         min_based_df.fillna(value=0)
         print(len(data_list))
         print([len(i) for i in MAs])
-        # min_based_df.plot()
-        raw_df = pd.DataFrame(f)
-        print(raw_df)
-        final_df = raw_df.join(min_based_df)
-    
-    # fig,ax1 = plt.subplot(211)
-    fig,ax1 = plt.subplots()
+        fig = min_based_df.plot()
+
     maxid = f.idxmax()
     minid = f.idxmin()
     print(maxid,minid)
     
-    # fig = min_based_df.plot()
-    
     #plot 1min kline data
-    if True:
-        
+    if False:
+        fig,ax1 = plt.subplots()
         ax1.plot([ datetime.fromtimestamp(i.value/1000000000) for i in index],vals,'b-')
-
         ax2 = ax1.twinx()
         ax2.set_ylabel("price")
         kline_bitmex_data = get_bitmex_kline_data("ETHM19",binSize="1m",start_time=datetime.fromtimestamp(index[0].value/1000000000))
@@ -195,9 +190,11 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
             x2.append(i['timestamp'])
             y2.append((float(i['close'])+float(i['open']))/2)
         ax2.plot(x2, y2, 'y-')
-
+        
+        ax1.set_xlabel("Timestamp")
+        ax1.set_ylabel("Percent")
     #plot buy/sell chance point
-    if False:
+    if True:
         up_marker,down_marker = [],[]
         for idx in range(1,len(MA_AVG)):
             if MA_AVG[idx] and MA_AVG[idx-1]:
@@ -211,7 +208,7 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
             plt.scatter(i[0],i[1],s=40,c="green",marker="p")
     
     #plot real trade point
-    if True:
+    if False:
         trade_points = get_trade_point_from_db(session,'ETHM19',index[0].strftime("%Y%m%dT%H:%M:%S"))
         for p in trade_points:
             color = 'red' if p['side'] == 'Buy' else 'black'
@@ -220,7 +217,7 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
 
 
     #plot max/min point
-    if False:
+    if True:
         plt.annotate('max({t},{v})'.format(t = maxid,v=f[maxid]), xy=(maxid, f[maxid]),arrowprops=dict(facecolor='black', shrink=0.05))
         plt.axhline(y=f[maxid],linestyle="--",color="gray")
         plt.text(maxid,f[maxid],'max({t},{v})'.format(t = maxid.strftime("%Y%m%d#%H:%M:%S") ,v=f[maxid]))
@@ -229,8 +226,7 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
         plt.axhline(y=f[minid],linestyle="--",color="gray")
         plt.text(minid,f[minid],'min({t},{v})'.format(t = minid.strftime("%Y%m%d#%H:%M:%S") ,v=f[minid]))
     
-    ax1.set_xlabel("Timestamp")
-    ax1.set_ylabel("Percent")
+    
     
     plt.title("{symbol}---{EB}[{BK}]/{EA}[{AK}]-1".format(symbol=symbol,EA=exchangeA,AK=akey,EB=exchangeB,BK=bkey))
     mplcursors.cursor(fig)
@@ -320,7 +316,8 @@ if __name__ == "__main__":
     with Session() as session:
         # get_trade_point_from_db(session,'ETHM19')
         # plot_exchangeAB(session,"bitmex","asks","binance","bids","XRP",start_date_str="20190416 00:00:00")
-        plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str="20190511 00:00:00")
-        # plot_exchangeAB(session,"bitmex","asks","bitmex","bids","BTC",start_date_str="20190513 00:00:00")
+        # plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str="20190511 00:00:00")
+        # plot_exchangeAB(session,"bitmex","asks","bitmex","bids","BTC",start_date_str="20190512 08:00:00")
         # plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str="20190501 00:00:00")
-        # plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str="20190416 00:00:00")
+        # plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str="20190417 00:00:00")
+        plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str="20190505 00:00:00")

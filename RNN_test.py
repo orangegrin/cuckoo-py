@@ -9,7 +9,7 @@ testing_examples = 5000
 # sin函数的采样间隔
 sample_gap = 1
 # 每个训练样本的长度
-timesteps = 2000
+timesteps = 100
 
 def generate_data(seq):
     '''
@@ -60,7 +60,7 @@ outputs, final_state = tf.nn.dynamic_rnn(cell, x, dtype=tf.float32)
 outputs = outputs[:,-1]
 
 # 定义输出层, 输出值[-1,1]，因此激活函数用tanh
-predictions = tf.contrib.layers.fully_connected(outputs, 1, activation_fn=tf.tanh)
+predictions = tf.contrib.layers.fully_connected(outputs, 1)
 # 定义损失函数
 cost = tf.losses.mean_squared_error(y_, predictions)
 # 定义优化步骤

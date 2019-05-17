@@ -18,13 +18,16 @@ from binance.websockets import BinanceSocketManager
 from binance.depthcache import DepthCacheManager
 from binance.client import Client
 from datetime import timezone,timedelta
-from multiprocessing import Process,Queue
+from queue import Queue
+# from multiprocessing import Process,Queue
 
 import fcoin
-from fcoin.WebsocketClient import WebsocketClient
+from fcoin.WebsocketClient import WebsocketClient as FcoinWebsocketClient
+from bitfinex.websocket import WebsocketClient as BitfinexWebsocketClient
+from kraken.websocket import WebsocketClient as KrakenWebsocketClient
 
 exchange='bitmex'
-symbol=['ETHM19','LTCM19','EOSM19','XRPM19','TRXM19','XBTM19','XBTU19']
+symbol=['ETHM19','LTCM19','EOSM19','XRPM19','TRXM19']
 symbol_ch_dict={"bitmex":{"XBTUSD":"BTCUSD"}}
 data_cache={}
 sanity_data_cach={}
@@ -33,7 +36,8 @@ Last_ts = "000"
 Last_last_ts = "000"
 # DefaultUnAuthSubTables=["quote"]
 DefaultUnAuthSubTables=["orderBook10"]
-DefaultAuthSubTables=["order", "position"]
+DefaultAuthSubTables=[]
+# DefaultAuthSubTables=["order", "position"]
 
 DATA_QUEUE,PING_QUEUE = Queue(), Queue()
 
@@ -53,7 +57,15 @@ GSYMBOL_BINANCE={
     "XRP/BTC":"XRPBTC"
 }
 
+KRAKEN_GSYMBOL={
+    "ETH/XBT":"ETH/BTC",
+    "EOS/XBT":"EOS/BTC",
+    "LTC/XBT":"LTC/BTC",
+    "XRP/XBT":"XRP/BTC"
+}
 FCOIN_TOPICS = ["depth.L20.ethbtc", "depth.L20.eosbtc", "depth.L20.xrpbtc", "depth.L20.ltcbtc"]
+BITFINEX_PAIR = ["ETHBTC","EOSBTC","LTCBTC","XRPBTC"]
+KRAKEN_PAIR = ["ETH/XBT","EOS/XBT","LTC/XBT","XRP/XBT"]
 
 async def fetch_order_book(exchange_name,exchange_obj,symbols):
 
@@ -171,19 +183,79 @@ def binanceWsFun():
     client = Client("api_key", "api_secret")
     bm = BinanceSocketManager(client)
     for isymbol in ['ETH/BTC','LTC/BTC','EOS/BTC','XRP/BTC']:
-        _dcm2 = DepthCacheManager(client, GSYMBOL_BINANCE[isymbol], callback=save_binance_orderbook, bm=bm)
+        try:
+            _dcm2 = DepthCacheManager(client, GSYMBOL_BINANCE[isymbol], callback=save_binance_orderbook, bm=bm)
+        except :
+            print(traceback.format_exc())
+            time.sleep(10)
     while True:
         time.sleep(10)
 
 def fcoinWsFun():
     
-    # class HandleWebsocket(WebsocketClient):
-    #     def handle(self,msg):
-    #         save_fcoin_orderbook(msg)
-
-    ws = WebsocketClient()
+    ws = FcoinWebsocketClient()
     ws.handle_fun = save_fcoin_orderbook
     ws.sub(FCOIN_TOPICS)
+
+
+def bitfinexcallback(data_body):
+
+    global DATA_QUEUE,PING_QUEUE
+    tzutc_0 = timezone(timedelta(hours=0))
+
+    for key in data_body:
+        if data_body[key]['asks'] and data_body[key]['bids']:
+            ask1 = sorted(data_body[key]['asks'].keys())[0]
+            bid1 = sorted(data_body[key]['bids'].keys())[-1]
+
+            sd = {}
+            if data_body[key]['pair'] in BITFINEX_PAIR:
+                sd={
+                        'asks':ask1,
+                        'bids':bid1,
+                        'symbol':BINANCE_GSYMBOL[data_body[key]['pair'].upper()],
+                        'exchange':'bitfinex',
+                        'timestamp':datetime.datetime.fromtimestamp(time.time()).astimezone(tzutc_0).strftime("%Y-%m-%dT%H:%M:%S")
+                }
+                DATA_QUEUE.put(sd,False)
+                PING_QUEUE.put(("bitfinex",int(time.time())),False)
+            else:
+                pprint.pprint(data_body)
+
+def bitfinexWsFun():
+    
+    ws = BitfinexWebsocketClient()
+    ws.handle_fun = bitfinexcallback
+    ws.sub([['book','tEOSBTC'],['book','tETHBTC']])
+
+def krakencallback(data_body):
+    global DATA_QUEUE,PING_QUEUE
+    tzutc_0 = timezone(timedelta(hours=0))
+
+    for key in data_body:
+        if data_body[key]['asks'] and data_body[key]['bids']:
+            ask1 = sorted(data_body[key]['asks'].keys())[0]
+            bid1 = sorted(data_body[key]['bids'].keys())[-1]
+
+            sd = {}
+            if data_body[key]['pair'] in KRAKEN_PAIR:
+                sd={
+                        'asks':ask1,
+                        'bids':bid1,
+                        'symbol':KRAKEN_GSYMBOL[data_body[key]['pair'].upper()],
+                        'exchange':'kraken',
+                        'timestamp':datetime.datetime.fromtimestamp(time.time()).astimezone(tzutc_0).strftime("%Y-%m-%dT%H:%M:%S")
+                }
+                DATA_QUEUE.put(sd,False)
+                PING_QUEUE.put(("kraken",int(time.time())),False)
+            else:
+                pprint.pprint(data_body)
+
+def krakenWsFun(channel="book",symbol_pair=["ETH/XBT","EOS/XBT","LTC/XBT","XRP/XBT"]):
+    
+    ws = KrakenWebsocketClient()
+    ws.handle_fun = krakencallback
+    ws.sub(channel=channel,symbol_pair=symbol_pair)
 
 def log_trade_history_from_bitmex(session):
     #
@@ -196,7 +268,7 @@ def log_trade_history_from_bitmex(session):
             if od.get('ordStatus',None) == 'Filled':
                 try:
                     tmp_od = {'symbol': od['symbol'], 'side': od['side'],'price': od['price'], 'orderid': od['orderID'], 'accountid': od['account'], 'orderqty': od['orderQty'], 'extratext': od['text'],'timestamp': datetime.datetime.strptime(od['timestamp'].split('.')[0],"%Y-%m-%dT%H:%M:%S"),'transactTime': datetime.datetime.strptime(od['transactTime'].split('.')[0],"%Y-%m-%dT%H:%M:%S")}
-                    ex_id =  session.query(TradeHistory.id).filter_by(orderid=tmp_od['orderID']).first()
+                    ex_id =  session.query(TradeHistory.id).filter_by(orderid=tmp_od['orderid']).first()
                     if ex_id:
                         continue
                     else:
@@ -246,6 +318,7 @@ def save_to_db(q):
     
     
 def start_back_process(flag):
+    global DATA_QUEUE
     from threading import Thread
     if flag=="bitmex":
         p1 = Thread(target=bitmexWsFun, args=())
@@ -257,6 +330,14 @@ def start_back_process(flag):
         return p2
     elif flag=="fcoin":
         p2 = Thread(target=fcoinWsFun, args=())
+        p2.start()
+        return p2
+    elif flag=="bitfinex":
+        p2 = Thread(target=bitfinexWsFun, args=())
+        p2.start()
+        return p2
+    elif flag=="kraken":
+        p2 = Thread(target=krakenWsFun, args=())
         p2.start()
         return p2
     elif flag=="savedb":
@@ -271,7 +352,7 @@ def main():
     global DATA_QUEUE,PING_QUEUE,pingdict
     
     start_back_process("savedb")
-    for flag in ["bitmex","binance","fcoin"]:
+    for flag in ["kraken"]:#"bitfinex","bitmex","binance","fcoin"]:
         pingdict[flag]={"ph":None,"lastping":int(time.time())}
         pingdict[flag]["ph"]=start_back_process(flag)
 
@@ -299,7 +380,7 @@ def main():
                         pinginfo=PING_QUEUE.get(block=False)
                         #pinginfo----('bitmex',155284612231)
                         if pinginfo:
-                            print("{} : update ping time {}".format(pinginfo[0],pinginfo[1]))
+                            # print("{} : update ping time {}".format(pinginfo[0],pinginfo[1]))
                             pingdict[pinginfo[0]]["lastping"] = pinginfo[1]
 
                     for exchangename in pingdict.keys():

@@ -128,12 +128,12 @@ if __name__ == "__main__":
         
         start_tick = time.time()
         with Session() as session:
-            # calc_latest_diff_data(session,'bitmex','asks','binance','bids','ETH',latest_days=4)
-            # calc_latest_diff_data(session,'bitmex','asks','binance','bids','EOS',latest_days=4)
-            # calc_latest_diff_data(session,'bitmex','asks','binance','bids','LTC',latest_days=4)
-            # calc_latest_diff_data(session,'bitmex','asks','binance','bids','XRP',latest_days=4)
-            f = tv_data_fetch(session,'bitmex','asks','binance','bids','ETH','1s',1555372800,1555459200)
-            print(len(f['o']))
+            calc_latest_diff_data(session,'bitmex','asks','binance','bids','ETH',latest_days=4)
+            calc_latest_diff_data(session,'bitmex','asks','binance','bids','EOS',latest_days=4)
+            calc_latest_diff_data(session,'bitmex','asks','binance','bids','LTC',latest_days=4)
+            calc_latest_diff_data(session,'bitmex','asks','binance','bids','XRP',latest_days=4)
+            # f = tv_data_fetch(session,'bitmex','asks','binance','bids','ETH','1s',1555372800,1555459200)
+            # print(len(f['o']))
             
         # time.sleep(1)
         # with Session() as session:

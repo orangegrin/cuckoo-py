@@ -35,8 +35,8 @@ class BitMEXWebsocket():
                     AuthSubTables=None):
                     
         self.logger = logging.getLogger('root') if not logger else logger
-        self.UnAuthSubTables = UnAuthSubTables if UnAuthSubTables else DefaultUnAuthSubTables
-        self.AuthSubTables = AuthSubTables if AuthSubTables else DefaultAuthSubTables
+        self.UnAuthSubTables = UnAuthSubTables if UnAuthSubTables is None else DefaultUnAuthSubTables
+        self.AuthSubTables = AuthSubTables if AuthSubTables is None else DefaultAuthSubTables
        
         # add subscrib call back
         self.sub_callback_dic={}

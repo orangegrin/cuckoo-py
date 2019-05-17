@@ -19,7 +19,8 @@ from binance.depthcache import DepthCacheManager
 from binance.client import Client
 from datetime import timezone,timedelta
 from multiprocessing import Process,Queue
-
+from bitfinex.websocket import WebsocketClient
+from kraken.websocket import WebsocketClient as KrakenWebsocketClient
 
 exchange='bitmex'
 symbol=['ETHM19','LTCM19','EOSM19','XRPM19','TRXM19','XBTUSD']
@@ -31,7 +32,8 @@ Last_ts = "000"
 Last_last_ts = "000"
 # DefaultUnAuthSubTables=["quote"]
 DefaultUnAuthSubTables=["orderBook10"]
-DefaultAuthSubTables=["order", "position"]
+# DefaultAuthSubTables=["order", "position"]
+DefaultAuthSubTables=[]
 
 q,pingq,trade_q = Queue(), Queue(), Queue()
 
@@ -216,8 +218,32 @@ def start_back_process(flag):
         p3 = Process(target=save_to_db, args=(q,trade_q))
         p3.start()
         return p3
-        
 
+def bitfinexcallback(data_body):
+    for key in data_body:
+        if data_body[key]['asks'] and data_body[key]['bids']:
+            ask1 = sorted(data_body[key]['asks'].keys())[0]
+            bid1 = sorted(data_body[key]['bids'].keys())[-1]
+            print("orderBook:",data_body[key]['symbol'],ask1,bid1)
+
+def bitfinexWsFun(order_topics = [['book','tEOSBTC'],['book','tETHBTC']]):
+    
+    ws = WebsocketClient()
+    ws.handle_fun = bitfinexcallback
+    ws.sub(order_topics)
+
+def krakencallback(data_body):
+    for key in data_body:
+        if data_body[key]['asks'] and data_body[key]['bids']:
+            ask1 = sorted(data_body[key]['asks'].keys())[0]
+            bid1 = sorted(data_body[key]['bids'].keys())[-1]
+            print("orderBook:",data_body[key]['pair'],ask1,bid1)
+
+def krakenWsFun(channel="book",symbol_pair=["ETH/XBT","EOS/XBT","LTC/XBT","XRP/XBT"]):
+    
+    ws = KrakenWebsocketClient( )
+    ws.handle_fun = krakencallback
+    ws.sub(channel=channel,symbol_pair=symbol_pair)
 
 def main():
     # bitmex_mon = BitMexMon(symbol,UnAuthSubTables=DefaultUnAuthSubTables,AuthSubTables=DefaultAuthSubTables)
@@ -292,6 +318,7 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    # main()
+    krakenWsFun()
 
     
