@@ -1,4 +1,3 @@
-from exchange.bitmex.apihub.bitmex import BitMEX
 import json
 import requests
 import urllib
@@ -8,43 +7,6 @@ import hmac
 import configparser
 import logging
 
-
-class BitmexApi(object):
-        
-    def __init__(self, api_key, api_secret):
-        self.bitmex_obj = BitMEX(base_url='https://www.bitmex.com/api/v1/', symbol='XBTUSD', apiKey=api_key, apiSecret=api_secret, RestOnly=True)
-
-    # 获取账号余额，以BTC计价
-    def walletBalanceBTC(self):
-        resp_data = self.bitmex_obj._curl_bitmex(
-            path='user/walletSummary',
-            query={
-                'currency':'XBt',
-            },
-            verb="GET"
-        )
-        length = len(resp_data)
-        decimal = 8
-        margin_bal = 0
-        for i in range(length):
-            item = resp_data[i]
-            if item['transactType'] != 'Total':
-                continue
-            
-            margin_bal = item['marginBalance']
-            margin_bal = margin_bal/(pow(10,decimal))
-        return margin_bal
-    
-    def depth(self,symbol,limit=5):
-        resp_data = self.bitmex_obj._curl_bitmex(
-            path='orderBook/L2',
-            query={
-                'symbol':symbol,
-            },
-            verb="GET"
-        )
-
-
 class BinanceApi(object):
     def __init__(self, api_key, api_secret):
         self.api_key =  api_key
@@ -53,6 +15,7 @@ class BinanceApi(object):
 
     def walletBalanceBTC(self):
         all_bal = self.getAllBalance()
+        all_bal = all_bal.values()
         return self._caculateBtcBal(all_bal)
 
     def _caculateBtcBal(self,all_bal):
@@ -67,7 +30,7 @@ class BinanceApi(object):
 
             if asset == 'USDT':
                 symbol = 'BTC'+asset
-                price = self.price(symbol)                    
+                price = self.price(symbol)
                 total_btc += amount/price
                 continue
 
@@ -87,7 +50,7 @@ class BinanceApi(object):
         }
         info = self._query('GET',path,params)
         return info
-
+    
 
     def price(self,symbol):
         path = '/api/v3/ticker/price'
@@ -106,10 +69,8 @@ class BinanceApi(object):
         params['timestamp'] = int(round(time.time() * 1000))
         info = self._query(method='GET',path=path,params=params,auth=True)
         balances = info['balances']
-        length = len(balances)
-        none_zero_bal = []
-        for i in range(length):
-            item = balances[i]
+        none_zero_bal = {}
+        for item in balances:
             new_item = {}
             asset = item['asset']
             
@@ -121,7 +82,7 @@ class BinanceApi(object):
                 new_item['total'] = total_amount
                 new_item['free'] = free_amount
                 new_item['locked'] = locked_amount
-                none_zero_bal.append(new_item)
+                none_zero_bal[asset] = new_item 
         return none_zero_bal
 
     def _makeSignature(self,query_str):

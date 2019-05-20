@@ -136,11 +136,6 @@ class MonitorCuckoo(object):
             run_ret = self.check_proc(value)
 
 
-
-
-
-
-
 cuckoo = MonitorCuckoo()
 sleep_time = 60
 

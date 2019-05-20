@@ -1,0 +1,26 @@
+{
+    "asset":{
+        "EOS": {
+            "redis_key":"ssss"
+        },
+
+        "ETH": {
+            "redis_key":"aaa"
+        }
+    },
+
+    "origin_bal":{
+        "binance":{
+            "EOS":{"asset":"EOS","total":1060},
+            "ETH":{"asset":"ETH","total":113},
+            "LTC":{"asset":"LTC","total":100.009},
+            "BTC":{"asset":"BTC","total":14.76901981},
+            "BNB":{"asset":"BNB","total":4.79533414}
+
+        },
+
+        "bitmex":{
+            "BTC":{"asset":"BTC","total":7.90250209}
+        }
+    }
+}

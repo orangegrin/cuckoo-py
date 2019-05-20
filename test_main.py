@@ -9,7 +9,6 @@ import configparser
 import logging
 from monitor.exchange.binance_api import BinanceApi
 from monitor.exchange.bitmex_api import BitmexApi
-import redis
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -43,38 +42,7 @@ formatter = logging.Formatter('%(asctime)s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-sleep_time = 60*30;
-while True:
-    # 币安btc余额
-    binance_total_bal = binance_api.walletBalanceBTC()
-    # 需要扣除的币种
-    binance_btc_minus = binance_api._caculateBtcBal(minus_list)
-
-    # 扣除后的余额
-    binance_bal = binance_total_bal - binance_btc_minus
-
-    # bitmex 余额
-    bitmex_bal = bitmex_api.walletBalanceBTC()
-
-    # 当前总余额
-    latest_bal = binance_bal+bitmex_bal
-    origin_bal = config_json['origin_bal']['binance']['BTC']['total'] + config_json['origin_bal']['bitmex']['BTC']['total']
-    win_bal = latest_bal-origin_bal
-    win_rate = win_bal/origin_bal
-
-    log_data = {
-        'binance_total_bal':binance_total_bal,
-        'binance_bal':binance_bal,
-        'bitmex_bal':bitmex_bal,
-        'latest_bal':latest_bal,
-        'origin_bal':origin_bal,
-        'win_bal': win_bal,
-        'win_rate': win_rate
-    }
-
-    log_str = json.dumps(log_data)
-    logger.info(log_str)
-    time.sleep(sleep_time)
-
-
-
+bitmex_all_bal = bitmex_api.getAllPosition()
+binance_all_bal = binance_api.getAllBalance()
+print(bitmex_all_bal)
+print(binance_all_bal)
