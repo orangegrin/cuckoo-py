@@ -30,7 +30,7 @@ with open('collector.json','r') as load_f:
     collector_json = json.load(load_f)
 
 symbols = collector_json['bitmex']['symbol']
-print(symbols)
+# print(symbols)
 
 symbol_ws = {}
 for sb in symbols:
@@ -71,6 +71,6 @@ while True:
         }
         save_content = json.dumps(save_data)
         log_manager.save_log(time_int,'bitmex',save_content)
-        print(time_ms)
+        # print(time_ms)
     time.sleep(0.1)
 
