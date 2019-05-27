@@ -6,11 +6,11 @@ import configparser
 import logging
 
 
-config = configparser.ConfigParser()
-config.read('config.ini')
+# config = configparser.ConfigParser()
+# config.read('config.ini')
 
-api_key = config.get('bitmex','api_key')
-api_secret = config.get('bitmex','api_secret')
+# api_key = config.get('bitmex','api_key')
+# api_secret = config.get('bitmex','api_secret')
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ log_manager = LogManager(base_log_path)
 # now = int(time.time())
 # log_manager.save_log(now,'bitmex','testaa')
 
-factory = BitmexWsFactory(api_key,api_secret)
+factory = BitmexWsFactory(None,None)
 with open('collector.json','r') as load_f:
     collector_json = json.load(load_f)
 
