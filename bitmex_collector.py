@@ -72,5 +72,5 @@ while True:
         save_content = json.dumps(save_data)
         log_manager.save_log(time_int,'bitmex',save_content)
         # print(time_ms)
-    time.sleep(0.1)
+    time.sleep(1)
 
