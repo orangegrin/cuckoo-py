@@ -25,10 +25,16 @@ class BitMEXWebsocket:
     def __init__(self, endpoint, symbol, api_key=None, api_secret=None):
         '''Connect to the websocket and initialize data stores.'''
         self.logger = logging.getLogger(__name__)
-        self.logger.debug("Initializing WebSocket.")
-
+        
+        handler = logging.FileHandler('log/bitmex_ws.log')
+        formatter = logging.Formatter('%(asctime)s %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.setLevel(level=logging.INFO)
+        self.logger.addHandler(handler)
         self.endpoint = endpoint
         self.symbol = symbol
+
+        self.logger.debug("Initializing WebSocket.")
 
         if api_key is not None and api_secret is None:
             raise ValueError('api_secret is required if api_key is provided')
@@ -113,7 +119,7 @@ class BitMEXWebsocket:
 
     def __connect(self, wsURL, symbol):
         '''Connect to the websocket in a thread.'''
-        self.logger.debug("Starting thread")
+        self.logger.info("Starting thread")
 
         self.ws = websocket.WebSocketApp(wsURL,
                                          on_message=self.__on_message,
@@ -125,7 +131,7 @@ class BitMEXWebsocket:
         self.wst = threading.Thread(target=lambda: self.ws.run_forever())
         self.wst.daemon = True
         self.wst.start()
-        self.logger.debug("Started thread")
+        self.logger.info("Started thread")
         # Wait for connect before continuing
         conn_timeout = 5
         while not self.ws.sock or not self.ws.sock.connected and conn_timeout:
@@ -252,7 +258,7 @@ class BitMEXWebsocket:
 
     def __on_open(self):
         '''Called when the WS opens.'''
-        self.logger.debug("Websocket Opened.")
+        self.logger.info("Websocket Opened.")
 
     def __on_close(self):
         '''Called on websocket close.'''

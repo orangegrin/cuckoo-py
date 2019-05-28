@@ -17,6 +17,14 @@ class BitmexWsFactory(object):
         self.base_url = "wss://www.bitmex.com/realtime"
         self.bitmex_ws = {}
 
+        self.logger = logging.getLogger(__name__)
+        
+        handler = logging.FileHandler('log/bitmex_ws.log')
+        formatter = logging.Formatter('%(asctime)s %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.setLevel(level=logging.INFO)
+        self.logger.addHandler(handler)
+
     def get_ws(self,symbol):
         if symbol in self.bitmex_ws:
             return self.bitmex_ws[symbol]
@@ -28,8 +36,11 @@ class BitmexWsFactory(object):
         t = time.time()
         time_ms = int(round(t * 1000))
         time_int = int(t)
-        if ws.ws.sock.connected == False:
-            return False
+
+        if not ws.ws.sock.connected:
+            self.logger.info("reconnect ws "+ws.symbol)
+            ws.__connect(self.base_url,ws.symbol)
+
         depth = ws.market_depth()
         if depth == None:
             return False
