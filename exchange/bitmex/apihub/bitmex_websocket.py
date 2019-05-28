@@ -24,7 +24,7 @@ class BitMEXWebsocket:
 
     def __init__(self, endpoint, symbol, api_key=None, api_secret=None):
         '''Connect to the websocket and initialize data stores.'''
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__+symbol)
         
         handler = logging.FileHandler('log/bitmex_ws.log')
         formatter = logging.Formatter('%(asctime)s %(message)s')
@@ -131,16 +131,19 @@ class BitMEXWebsocket:
         self.wst = threading.Thread(target=lambda: self.ws.run_forever())
         self.wst.daemon = True
         self.wst.start()
-        self.logger.info("Started thread")
+        self.logger.info("Started connect thread "+symbol)
         # Wait for connect before continuing
-        conn_timeout = 5
-        while not self.ws.sock or not self.ws.sock.connected and conn_timeout:
-            sleep(1)
-            conn_timeout -= 1
-        if not conn_timeout:
-            self.logger.error("Couldn't connect to WS! Exiting.")
-            self.exit()
-            raise websocket.WebSocketTimeoutException('Couldn\'t connect to WS! Exiting.')
+        # conn_timeout = 5
+        # while not self.ws.sock or not self.ws.sock.connected and conn_timeout:
+        #     sleep(5)
+        #     conn_timeout -= 1
+        # if not conn_timeout:
+        #     self.logger.error("Couldn't connect to WS! Exiting.")
+        #     self.exit()
+        #     raise websocket.WebSocketTimeoutException('Couldn\'t connect to WS! Exiting.')
+        while not self.ws.sock or not self.ws.sock.connected :
+            sleep(5)
+            self.logger.info("wait reconnect... "+symbol)
 
     def __get_auth(self):
         '''Return auth headers. Will use API Keys if present in settings.'''
