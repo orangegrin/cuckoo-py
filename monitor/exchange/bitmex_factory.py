@@ -37,7 +37,7 @@ class BitmexWsFactory(object):
         time_ms = int(round(t * 1000))
         time_int = int(t)
 
-        if not ws.ws.sock.connected:
+        if not ws.ws.sock:
             self.logger.info("reconnect ws "+ws.symbol)
             ws.__connect(self.base_url,ws.symbol)
 
