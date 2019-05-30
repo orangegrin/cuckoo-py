@@ -52,7 +52,7 @@ class BitMEXWebsocket:
         # Subscribe to all pertinent endpoints
         wsURL = self.__get_url()
         self.logger.info("Connecting to %s" % wsURL)
-        self.__connect(wsURL, symbol)
+        self.connect(wsURL, symbol)
         self.logger.info('Connected to WS.')
 
         # Connected. Wait for partials
@@ -117,7 +117,7 @@ class BitMEXWebsocket:
     # End Public Methods
     #
 
-    def __connect(self, wsURL, symbol):
+    def connect(self, wsURL, symbol):
         '''Connect to the websocket in a thread.'''
         self.logger.info("Starting thread")
 
