@@ -142,8 +142,8 @@ class BitMEXWebsocket:
         #     self.exit()
         #     raise websocket.WebSocketTimeoutException('Couldn\'t connect to WS! Exiting.')
         while not self.ws.sock or not self.ws.sock.connected :
+            self.logger.info("wait for connecting... "+symbol)
             sleep(5)
-            self.logger.info("wait reconnect... "+symbol)
 
     def __get_auth(self):
         '''Return auth headers. Will use API Keys if present in settings.'''
