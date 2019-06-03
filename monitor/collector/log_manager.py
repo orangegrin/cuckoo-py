@@ -13,7 +13,7 @@ class LogManager(object):
         self.file_handler = {}
 
     def save_log(self,time_int,exchange_name,content):
-        time_log = time_int - time_int % 3600
+        time_log = time_int - time_int % (3600*24)
         time_log = str(time_log)
         folder = self.base_log_path + "/"+time_log
         folder_exist = os.path.exists(folder)
