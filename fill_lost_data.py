@@ -148,20 +148,42 @@ def fill_binance(symbol='ethbtc',dbsymbol='ETH/BTC',after=1557889200):
 
     print(len(avg_price))
 
+def fill_lost_data_to_db(exchange,lost_data):
+    # [{'timestamp': datetime.datetime(2019, 5, 20, 8, 30), 'symbol': 'XBTUSD', 'open': 7920, 'high': 7920, 'low': 7903.5, 'close': 7903.5, 'trades': 673, 'volume': 2005070, 'vwap': 7910.7666, 'lastSize': 2500, 'turnover': 25348031427, 'homeNotional': 253.48031427, 'foreignNotional': 2005070}...]
+    fill_items = []
+    for item in lost_data:
+        avg_price = int((item['open']+item['close'])/2*100)/100
+        sd = {
+                'asks':avg_price,
+                'bids':avg_price,
+                'symbol':item['symbol'],
+                'exchange':exchange,
+                'timestamp':item['timestamp'].strftime("%Y-%m-%dT%H:%M:%S")
+        }
+        fill_items.append(sd)
+    
+    for sd in fill_items:
+        sd['timesymbol'] = "_".join([sd['timestamp'],sd['symbol'],sd['exchange']])
+        with Local_Session() as local_session:
+            ex_id =  local_session.query(IQuoteOrder.id).filter_by(timesymbol=sd['timesymbol']).first()
+            if ex_id:
+                local_session.query(IQuoteOrder).filter(IQuoteOrder.id==ex_id[0]).update({"bids":sd['bids'],"asks":sd['asks']})
+            else:
+                local_session.add(IQuoteOrder(**sd))
+                print(sd)
     
 if __name__ == "__main__":
+    from plot_figure import get_bitmex_kline_data
+    start_date = datetime.now()-timedelta(days=5)
+    lost_data = get_bitmex_kline_data('XBTUSD',start_time=start_date)+get_bitmex_kline_data('XBTM19',start_time=start_date)+get_bitmex_kline_data('XBTU19',start_time=start_date)
+    fill_lost_data_to_db('bitmex',lost_data)
     # fill_binance()
     # fill_binance(symbol='ethbtc',dbsymbol='ETH/BTC',after=1557889200)
     # fill_binance(symbol='eosbtc',dbsymbol='EOS/BTC',after=1557889200)
     # fill_binance(symbol='ltcbtc',dbsymbol='LTC/BTC',after=1557889200)
     # fill_binance(symbol='xrpbtc',dbsymbol='XRP/BTC',after=1557889200)
-    while True:
-        try:
-            main()
-        except Exception:
-            time.sleep(60)
-            pass
-    
+    # main()
                         
                 
     
+

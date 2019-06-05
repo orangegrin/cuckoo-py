@@ -15,12 +15,12 @@ BITMEX_BASE_URL = "https://www.bitmex.com/api/v1/" # Once you're ready, uncommen
 # BITMEX_API_SECRET = "isr6yST6iRD6SwRJPWSbldED44x8yvoSuhP2UPxkVE5US_ny"
 
 #lilei_hnu@163.com
-BITMEX_API_KEY = "WwMt0hMDVrvM4OdjAfzxvmP1"
-BITMEX_API_SECRET = "-zy_ktm7bZd1Ldhvjym0r5a1bNFMYlWhoEO1C8hvJbYnz44O"
+# BITMEX_API_KEY = "WwMt0hMDVrvM4OdjAfzxvmP1"
+# BITMEX_API_SECRET = "-zy_ktm7bZd1Ldhvjym0r5a1bNFMYlWhoEO1C8hvJbYnz44O"
 
 #tii key
-# BITMEX_API_KEY = "lYkEQBgZtaYCb9cAVblUU6cv"
-# BITMEX_API_SECRET = "KoTkgF2Vh6k-6Rx3meLoQN8Mnm74hynKbWSd_kb_vnlTwZce"
+BITMEX_API_KEY = "2d-8vQ6lpBp55S_3-CA7TSjb"
+BITMEX_API_SECRET = "9YqedjewVrOVJ3X6e1GzpyjC_NZKcyo1v3vJlqBCsvlD9xw_"
 
 ################################
 

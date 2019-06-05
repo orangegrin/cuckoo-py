@@ -41,7 +41,7 @@ class WebsocketClient():
                     self.handle(msg)
 
     def make_ping(self):
-        ping_msg={"cmd":"ping","args":[int(time.time()*1000)],"id":"sample.client.id"}
+        ping_msg={"cmd":"ping","args":[int(time.time()*1000)],"id":"11111111"}
         self.ws.send(json.dumps(ping_msg))
 
     def handle(self, msg):

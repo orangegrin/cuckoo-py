@@ -263,20 +263,26 @@ def log_trade_history_from_bitmex(session):
     
     try:
         bitmex_mon = BitMexMon(symbol,UnAuthSubTables=[],AuthSubTables=[],WebSocketOn=False)
-        orders = bitmex_mon.bitmex.http_get_orders({},all_order=True)
-        for od in orders:
-            if od.get('ordStatus',None) == 'Filled':
-                try:
-                    tmp_od = {'symbol': od['symbol'], 'side': od['side'],'price': od['price'], 'orderid': od['orderID'], 'accountid': od['account'], 'orderqty': od['orderQty'], 'extratext': od['text'],'timestamp': datetime.datetime.strptime(od['timestamp'].split('.')[0],"%Y-%m-%dT%H:%M:%S"),'transactTime': datetime.datetime.strptime(od['transactTime'].split('.')[0],"%Y-%m-%dT%H:%M:%S")}
-                    ex_id =  session.query(TradeHistory.id).filter_by(orderid=tmp_od['orderid']).first()
-                    if ex_id:
+        for i in range(1,4):
+            date_start_obj = (datetime.datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(hours=12*i))
+            date_end_obj = (datetime.datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(hours=12*(i-1)))
+            Start_date_str = date_start_obj.strftime("%Y-%m-%dT%H:%M:00")
+            End_date_str = date_end_obj.strftime("%Y-%m-%dT%H:%M:00")
+            print(Start_date_str,End_date_str)
+            orders = bitmex_mon.bitmex.http_get_orders({},all_order=True,startTime=Start_date_str,endTime=End_date_str)
+            for od in orders:
+                if od.get('ordStatus',None) == 'Filled':
+                    try:
+                        tmp_od = {'symbol': od['symbol'], 'side': od['side'],'price': od['price'], 'orderid': od['orderID'], 'accountid': od['account'], 'orderqty': od['orderQty'], 'extratext': od['text'],'timestamp': datetime.datetime.strptime(od['timestamp'].split('.')[0],"%Y-%m-%dT%H:%M:%S"),'transactTime': datetime.datetime.strptime(od['transactTime'].split('.')[0],"%Y-%m-%dT%H:%M:%S")}
+                        ex_id =  session.query(TradeHistory.id).filter_by(orderid=tmp_od['orderid']).first()
+                        if ex_id:
+                            continue
+                        else:
+                            print(tmp_od)
+                            session.add(TradeHistory(**tmp_od))
+                    except Exception:
+                        print(traceback.format_exc())
                         continue
-                    else:
-                        print(tmp_od)
-                        session.add(TradeHistory(**tmp_od))
-                except Exception:
-                    print(traceback.format_exc())
-                    continue
     except Exception:
         print(traceback.format_exc())            
 
@@ -296,21 +302,22 @@ def save_to_db(q):
         Base.metadata.create_all(bind=engine)
         
         log_trade_ts = None
+        data_cache = {}
         while True:
             sd = q.get()
             sd['timesymbol'] = "_".join([sd['timestamp'],sd['symbol'],sd['exchange']])
-            with Session() as session:
-                ex_id =  session.query(IQuoteOrder.id).filter_by(timesymbol=sd['timesymbol']).first()
-                # print(ex_id)
-                if ex_id:
-                    session.query(IQuoteOrder).filter(IQuoteOrder.id==ex_id[0]).update({"bids":sd['bids'],"asks":sd['asks']})
-                else:
-                    session.add(IQuoteOrder(**sd))
-                    print(sd)
-            if log_trade_ts == None or (time.time() - log_trade_ts) > 60*60*12:
-                  log_trade_ts  = time.time()
-                  log_trade_history_from_bitmex(session)
-
+            data_cache[sd['timesymbol']]=sd
+            if len(data_cache.values())>100:
+                with Session() as session:
+                    for sd in data_cache.values():
+                        ex_id =  session.query(IQuoteOrder.id).filter_by(timesymbol=sd['timesymbol']).first()
+                        # print(ex_id)
+                        if ex_id:
+                            session.query(IQuoteOrder).filter(IQuoteOrder.id==ex_id[0]).update({"bids":sd['bids'],"asks":sd['asks']})
+                        else:
+                            session.add(IQuoteOrder(**sd))
+                            print(sd)
+                    data_cache = {}
     except Exception :
         print(traceback.format_exc())
         os._exit(1)
@@ -352,7 +359,7 @@ def main():
     global DATA_QUEUE,PING_QUEUE,pingdict
     
     start_back_process("savedb")
-    for flag in ["kraken"]:#"bitfinex","bitmex","binance","fcoin"]:
+    for flag in ["bitmex"]:#,"kraken","bitfinex","binance","fcoin"]:
         pingdict[flag]={"ph":None,"lastping":int(time.time())}
         pingdict[flag]["ph"]=start_back_process(flag)
 
@@ -360,9 +367,9 @@ def main():
         try:
             exchangeSymbols = {
                 # "bitmex":[ccxt.bitmex({}),['ETHM19','LTCM19','EOS19','XRPM19']],
-                "gateio":[ccxt.gateio({}),['ETH/BTC','LTC/BTC','EOS/BTC','XRP/BTC']],
+                # "gateio":[ccxt.gateio({}),['ETH/BTC','LTC/BTC','EOS/BTC','XRP/BTC']],
                 # "binance":[ccxt.binance({'enableRateLimit': True}),['ETH/BTC','LTC/BTC','EOS/BTC','XRP/BTC']],
-                "okex":[ccxt.okex(),['ETH/BTC','LTC/BTC','EOS/BTC','XRP/BTC']],
+                # "okex":[ccxt.okex(),['ETH/BTC','LTC/BTC','EOS/BTC','XRP/BTC']],
                 # "fcoin":[ccxt.fcoin(),['ETH/BTC','LTC/BTC','EOS/BTC','XRP/BTC']]
             }
             try:
@@ -412,11 +419,24 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    # main()
+
     # bitmex_mon = BitMexMon(symbol,UnAuthSubTables=DefaultUnAuthSubTables,AuthSubTables=DefaultAuthSubTables,WebSocketOn=False)
     # filter_dict = {}
     # filled_orders = bitmex_mon.bitmex.http_get_orders(filter_dict,all_order=True)
     # tar_info = [{'symbol': i['symbol'], 'side': i['side'],'price': i['price'],'timestamp': i['timestamp']} for i in filled_orders]
     # print(tar_info)
 
-    
+    dburl = URL(**{
+    "drivername": "postgresql+psycopg2",
+    "host": "localhost",
+    "port": 5432,
+    "username": "ray",
+    "password": "yqll",
+    "database": "dashpoint"
+    })
+    engine = create_engine(dburl, echo=False)
+    Session = sessionmaker(bind=engine, class_=SessionContextManager)
+    Base.metadata.create_all(bind=engine)
+    with Session() as session:
+        log_trade_history_from_bitmex(session)

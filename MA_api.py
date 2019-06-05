@@ -6,7 +6,7 @@ import traceback,time
 from sanic import Sanic
 from sanic import response
 import aiohttp
-
+import json
 from MA_calc import fetch_latest_diff_data,tv_data_fetch
 from db.model import Base, SessionContextManager,BKQuoteOrder
 
@@ -151,5 +151,27 @@ def get_maavg_value_route(request):
                 ret_data["msg"] = "query fail,check param!"
     return response.json(ret_data)
 
+@app.get('/fundingRate')
+def get_funding_rate(request):
+    print(request.raw_args)
+    ret_data = {"status":0,"msg":"param error!"}
+    try:
+        if request.raw_args.get("symbol",None):
+            with open('./fundingRate.log','r') as fp:
+                funding_rate_dict = json.load(fp)
+                print(funding_rate_dict)
+                ret = funding_rate_dict.get(request.raw_args["symbol"].upper(),None)
+                if ret:
+                    ret_data["data"]={'value':ret['fundingRate'],"timestamp":ret['timestamp'],"symbol":request.raw_args["symbol"].upper()}
+                    ret_data["status"] = 1
+                    ret_data["msg"] = "success!"
+                else:
+                    ret_data["status"] = 2
+                    ret_data["msg"] = "query fail,check param!"
+    except Exception:
+        print(traceback.format_exc())
+    
+    return response.json(ret_data)
+    
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8000, workers=1)

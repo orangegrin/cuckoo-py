@@ -24,6 +24,7 @@ python-binance = "*"
 ta-lib = "*"
 sanic = "*"
 tensorflow = "*"
+paramiko = "*"
 
 [requires]
 python_version = "3.7"

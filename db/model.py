@@ -77,6 +77,18 @@ class BKQuoteOrder(Base):
         properties = ['timesymbol','exchange', 'symbol', 'asks', 'bids','timestamp']
         return {prop: getattr(self, prop, None) for prop in properties}
 
+class PreDiff(Base):
+    __tablename__ = 'prediff'
+
+    id = Column(Integer, primary_key=True,unique=True, autoincrement='auto')
+    timepairsymbol = Column(String(40),unique=True)
+    diff = Column(Float,nullable=False)
+    timestamp = Column(TIMESTAMP(timezone=False), nullable=False)
+
+    def to_dict(self):
+        properties = ['timepairsymbol','diff','timestamp']
+        return {prop: getattr(self, prop, None) for prop in properties}
+
 class TradeHistory(Base):
     __tablename__ = 'tradehistory'
 

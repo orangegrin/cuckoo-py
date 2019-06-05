@@ -205,15 +205,22 @@ class BitMEX(object):
         return self.http_get_orders(filter_dict)
     
     @authentication_required
-    def http_get_orders(self,filter_dict,all_order=False):
+    def http_get_orders(self,filter_dict,all_order=False,startTime=None,endTime=None):
         """Get open orders via HTTP. Used on close to ensure we catch them all."""
         path = "order"
+        query_body = {
+                'filter': json.dumps(filter_dict),
+                'count': 500,
+                'reverse':True
+            }
+        if startTime is not None:
+            query_body['startTime'] = startTime
+        if endTime is not None:
+            query_body['endTime'] = endTime
+            
         orders = self._curl_bitmex(
             path=path,
-            query={
-                'filter': json.dumps(filter_dict),
-                'count': 500
-            },
+            query=query_body,
             verb="GET"
         )
         # Only return orders that start with our clOrdID prefix.
