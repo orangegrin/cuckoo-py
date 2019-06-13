@@ -9,19 +9,18 @@ import time
 from monitor.collector.mbigquery import MBigquery
 
 class LogManager(object):
-    def __init__(self,base_log_path,bq_dataset):
+    def __init__(self,base_log_path,bq_dataset,exchange):
         self.base_log_path = base_log_path
         self.file_handler = {}
         self.minute_data = {}
         self.bigquery = MBigquery(bq_dataset)
-
-
-
+        self.exchange = exchange
 
         logger = logging.getLogger(__name__)
 
         logger.setLevel(level=logging.INFO)
-        handler = logging.FileHandler('log/binance_collector.log')
+        log_file = 'log/'+self.exchange+'_collector.log'
+        handler = logging.FileHandler(log_file)
         formatter = logging.Formatter('%(asctime)s %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
@@ -84,6 +83,7 @@ class LogManager(object):
             )
         ]
         ret = self.bigquery.insertData(exchange,insert_data)
+        # print(ret)
         content = json.dumps(insert_data)
         # print(content)
         self.logger.info('save data : '+content)
@@ -96,13 +96,14 @@ class LogManager(object):
         for item in data:
             if field not in item:
                 continue
-            
-            x = item[field].split('.',1)
-            numeric2 = len(x[1])
-            if numeric2 > numeric:
-                numeric = numeric2
+            field_num = str(item[field])
+            x = field_num.split('.',1)
+            if len(x)>1:
+                numeric2 = len(x[1])
+                if numeric2 > numeric:
+                    numeric = numeric2
                 
-            num += float(item[field])
+            num += float(field_num)
             length += 1
 
         if length == 0:

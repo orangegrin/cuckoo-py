@@ -6,6 +6,7 @@ import json
 import logging
 import urllib
 import math
+import time
 from exchange.bitmex.apihub.utils.api_key import generate_nonce, generate_signature
 
 
@@ -50,16 +51,16 @@ class BitMEXWebsocket:
 
         # We can subscribe right in the connection querystring, so let's build that.
         # Subscribe to all pertinent endpoints
-        wsURL = self.__get_url()
-        self.logger.info("Connecting to %s" % wsURL)
-        self.connect(wsURL, symbol)
-        self.logger.info('Connected to WS.')
+        # wsURL = self.__get_url()
+        # self.logger.info("Connecting to %s" % wsURL)
+        # self.connect(wsURL, symbol)
+        # self.logger.info('Connected to WS.')
 
-        # Connected. Wait for partials
-        self.__wait_for_symbol(symbol)
-        if api_key:
-            self.__wait_for_account()
-        self.logger.info('Got all market data. Starting.')
+        # # Connected. Wait for partials
+        # self.__wait_for_symbol(symbol)
+        # if api_key:
+        #     self.__wait_for_account()
+        # self.logger.info('Got all market data. Starting.')
 
     def exit(self):
         '''Call this to exit - will close websocket.'''
@@ -117,7 +118,7 @@ class BitMEXWebsocket:
     # End Public Methods
     #
 
-    def connect(self, wsURL, symbol):
+    def connect(self, wsURL):
         '''Connect to the websocket in a thread.'''
         self.logger.info("Starting thread")
 
@@ -131,7 +132,7 @@ class BitMEXWebsocket:
         self.wst = threading.Thread(target=lambda: self.ws.run_forever())
         self.wst.daemon = True
         self.wst.start()
-        self.logger.info("Started connect thread "+symbol)
+        self.logger.info("Started connect thread "+wsURL)
         # Wait for connect before continuing
         # conn_timeout = 5
         # while not self.ws.sock or not self.ws.sock.connected and conn_timeout:
@@ -142,8 +143,43 @@ class BitMEXWebsocket:
         #     self.exit()
         #     raise websocket.WebSocketTimeoutException('Couldn\'t connect to WS! Exiting.')
         while not self.ws.sock or not self.ws.sock.connected :
-            self.logger.info("wait for connecting... "+symbol)
+            self.logger.info("wait for connecting... "+ wsURL)
             sleep(5)
+
+    def sub_depth(self,symbols):
+        path = "?subscribe="
+        for symbol in symbols:
+            # path += "orderBookL2_25:"+symbol+","
+            path += "orderBook10:"+symbol+","
+        path = path[0:-1]
+        url = self.endpoint+path
+        self.connect(url)
+
+    def take_depth(self):
+        ret_data = {}
+        for item in self.data['orderBook10']:
+            symbol = item['symbol']
+            time_int = int(time.time())
+            time_ms = time_int
+
+            symbol_depth = {
+                'bid1_price': item['bids'][0][0],
+                'bid1_size': item['bids'][0][1],
+                'bid2_price': item['bids'][1][0],
+                'bid2_size': item['bids'][1][1],
+                'bid3_price': item['bids'][2][0],
+                'bid3_size': item['bids'][2][1],
+                'ask1_price': item['asks'][0][0],
+                'ask1_size': item['asks'][0][1],
+                'ask2_price': item['asks'][1][0],
+                'ask2_size': item['asks'][1][1],
+                'ask3_price': item['asks'][2][0],
+                'ask3_size': item['asks'][2][1],
+                'time_int': time_int,
+                'time_ms': time_ms
+            }
+            ret_data[symbol] = symbol_depth
+        return ret_data
 
     def __get_auth(self):
         '''Return auth headers. Will use API Keys if present in settings.'''

@@ -39,7 +39,7 @@ class BitmexWsFactory(object):
 
         if not ws.ws.sock:
             self.logger.info("reconnect ws "+ws.symbol)
-            ws.connect(self.base_url,ws.symbol)
+            ws.connect(self.base_url)
 
         depth = ws.market_depth()
         if depth == None:
