@@ -55,18 +55,19 @@ class LogManager(object):
         new_data['bid1_price'] = self.get_average(data,'bid1_price')
         new_data['bid2_price'] = self.get_average(data,'bid2_price')
         new_data['bid3_price'] = self.get_average(data,'bid3_price')
-        new_data['bid1_size'] = int(self.get_average(data,'bid1_size'))
-        new_data['bid2_size'] = int(self.get_average(data,'bid2_size'))
-        new_data['bid3_size'] = int(self.get_average(data,'bid3_size'))
+        new_data['bid1_size'] = self.get_average(data,'bid1_size')
+        new_data['bid2_size'] = self.get_average(data,'bid2_size')
+        new_data['bid3_size'] = self.get_average(data,'bid3_size')
         new_data['ask1_price'] = self.get_average(data,'ask1_price')
         new_data['ask2_price'] = self.get_average(data,'ask2_price')
         new_data['ask3_price'] = self.get_average(data,'ask3_price')
-        new_data['ask1_size'] = int(self.get_average(data,'ask1_size'))
-        new_data['ask2_size'] = int(self.get_average(data,'ask2_size'))
-        new_data['ask3_size'] = int(self.get_average(data,'ask3_size'))
+        new_data['ask1_size'] = self.get_average(data,'ask1_size')
+        new_data['ask2_size'] = self.get_average(data,'ask2_size')
+        new_data['ask3_size'] = self.get_average(data,'ask3_size')
         insert_data = [
             (
                 symbol,
+                minute_time,
                 minute_time,
                 new_data['bid1_price'],
                 new_data['bid1_size'],
