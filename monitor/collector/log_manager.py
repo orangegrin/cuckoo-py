@@ -112,7 +112,7 @@ class LogManager(object):
 
     def check_save_minute(self,exchange,symbol,data):
         now = int(time.time())
-        minute_time = now-now%10
+        minute_time = now-now % 60
         if symbol in self.minute_data:
             last_time = self.minute_data[symbol]['last_time']
             last_data = self.minute_data[symbol]['last_data']
