@@ -19,9 +19,7 @@ log_manager = LogManager(base_log_path,'depth_minute')
 # now = int(time.time())
 # log_manager.save_log(now,'bitmex','testaa')
 ws_obj = BinanceWs()
-symbols = ['ethbtc','eosbtc'
-# 'xrpbtc','adabtc','ltcbtc','trxbtc','bchabcbtc'
-]
+symbols = ['ethbtc','eosbtc','xrpbtc','adabtc','ltcbtc','trxbtc','bchabcbtc']
 ws_obj.sub_depth(symbols)
 
 

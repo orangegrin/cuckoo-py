@@ -84,7 +84,7 @@ class LogManager(object):
         ]
         ret = self.bigquery.insertData(exchange,insert_data)
         content = json.dumps(insert_data)
-        print(content)
+        # print(content)
         self.logger.info('save data : '+content)
 
 
