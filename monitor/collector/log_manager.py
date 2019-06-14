@@ -128,7 +128,7 @@ class LogManager(object):
             return True
         
         if minute_time > last_time:
-            self.save_minute(exchange,symbol,minute_time,self.minute_data[symbol]['last_data'])
+            self.save_minute(exchange,symbol,last_time,self.minute_data[symbol]['last_data'])
             self.minute_data[symbol]['last_time'] = minute_time
             self.minute_data[symbol]['last_data'] = []
             return True
