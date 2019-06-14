@@ -14,12 +14,19 @@ formatter = logging.Formatter('%(asctime)s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+with open('collector.json','r') as load_f:
+    collector_json = json.load(load_f)
+
+
+
+symbols = collector_json['binance']['symbols']
+
+
 base_log_path = 'collect_log'
-log_manager = LogManager(base_log_path,'depth_minute')
+log_manager = LogManager(base_log_path,collector_json['dataset'],'binance')
 # now = int(time.time())
 # log_manager.save_log(now,'bitmex','testaa')
 ws_obj = BinanceWs()
-symbols = ['ethbtc','eosbtc','xrpbtc','adabtc','ltcbtc','trxbtc','bchabcbtc']
 ws_obj.sub_depth(symbols)
 
 
