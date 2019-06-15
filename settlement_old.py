@@ -62,11 +62,11 @@ while True:
     win_rate = win_bal/origin_bal
 
     log_data = {
-        'binance_total_bal':binance_total_bal,
-        'binance_bal':binance_bal,
-        'bitmex_bal':bitmex_bal,
-        'latest_bal':latest_bal,
-        'origin_bal':origin_bal,
+        # 'binance_total_bal':binance_total_bal,
+        # 'binance_bal':binance_bal,
+        # 'bitmex_bal':bitmex_bal,
+        # 'latest_bal':latest_bal,
+        # 'origin_bal':origin_bal,
         'win_bal': win_bal,
         'win_rate': win_rate
     }

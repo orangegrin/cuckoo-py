@@ -18,3 +18,4 @@ log
 monitor.json
 settlement.json
 collector.json
+*.nohup
