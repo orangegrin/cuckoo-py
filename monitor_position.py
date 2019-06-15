@@ -57,10 +57,10 @@ class MonitorPosition(object):
 
         for asset in json_config['asset']:
             redis_key = json_config['asset'][asset]['redis_key']
-            bitmex_num = get_asset_num(bitmex_all_bal,asset)
-            binance_num = get_asset_num(binance_num,asset)
-            bitmex_origin_num = get_asset_num(origin_bitmex,asset)
-            binance_origin_num = get_asset_num(origin_binance,asset)
+            bitmex_num = self.get_asset_num(bitmex_all_bal,asset)
+            binance_num = self.get_asset_num(binance_num,asset)
+            bitmex_origin_num = self.get_asset_num(origin_bitmex,asset)
+            binance_origin_num = self.get_asset_num(origin_binance,asset)
             if bitmex_num + binance_num != bitmex_origin_num + binance_origin_num:
                 json_log = {'msg':'position is not equal','asset':asset}
                 json_log_str = json.dumps(json_log)
