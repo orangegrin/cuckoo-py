@@ -147,6 +147,7 @@ class BitMEXWebsocket:
             sleep(5)
 
     def sub_depth(self,symbols):
+        self.logger.info("subscribe depth "+json.dumps(symbols))
         path = "?subscribe="
         for symbol in symbols:
             # path += "orderBookL2_25:"+symbol+","
@@ -157,6 +158,7 @@ class BitMEXWebsocket:
 
     def take_depth(self):
         ret_data = {}
+
         for item in self.data['orderBook10']:
             symbol = item['symbol']
             time_int = int(time.time())

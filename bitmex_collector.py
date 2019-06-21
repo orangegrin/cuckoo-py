@@ -39,8 +39,8 @@ bitmex_ws = BitMEXWebsocket(endpoint=base_url, symbol='XBTUSD',api_key=None,api_
 bitmex_ws.sub_depth(symbols)
 
 while True:
-    if not bitmex_ws.ws.sock or not bitmex_ws.ws.sock.connected :
-        bitmex_ws.sub_depth(symbols)
+    # if not bitmex_ws.ws.sock or not bitmex_ws.ws.sock.connected :
+    #     bitmex_ws.sub_depth(symbols)
 
     symbols_depth = bitmex_ws.take_depth()
     for symbol in symbols_depth:

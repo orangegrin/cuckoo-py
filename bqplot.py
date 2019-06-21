@@ -4,7 +4,7 @@ import numpy as np
 import time
 from plotly.offline import plot
 from plotly.graph_objs import Scatter, Box
-
+import talib
 
 dataset = "depth_minute"
 exchange_a = "bitmex"
@@ -12,7 +12,6 @@ symbol_a = "XBTM19"
 
 exchange_b = "bitmex"
 symbol_b = "XBTU19"
-
 
 time_end = int(time.time())
 time_start = time_end - 3600*24*30
@@ -28,9 +27,27 @@ diff_num = data_b['bid1_price']-data_a['ask1_price']
 diff_rate = diff_num/data_a['ask1_price']
 # print(diff_rate.values)
 # print(diff_rate)
-diff_rate2 = diff_rate * 2
+# diff_rate2 = diff_rate * 2
 
 
-line1 = Scatter(x=diff_rate.index, y=diff_rate.values)
-line2 = Scatter(x=diff_rate2.index, y=diff_rate2.values)
-plot([line1,line2], filename='./plot-11.html')
+line_rate = Scatter(x=diff_rate.index, y=diff_rate.values, name="价差线")
+
+ma1 = talib.MA(diff_rate,1440)
+ma2 = talib.MA(diff_rate,1440*2)
+ma3 = talib.MA(diff_rate,1440*3)
+ma4 = talib.MA(diff_rate,1440*4)
+
+line_ma1 = Scatter(x=ma1.index, y=ma1.values, name="ma1")
+line_ma2 = Scatter(x=ma2.index, y=ma2.values, name="ma2")
+line_ma3 = Scatter(x=ma3.index, y=ma3.values, name="ma3")
+line_ma4 = Scatter(x=ma4.index, y=ma4.values, name="ma4")
+
+plot_line = [
+    line_rate,
+    line_ma1,
+    line_ma2,
+    line_ma3,
+    line_ma4
+]
+
+plot(plot_line, filename='./plothtml/plot-11.html')

@@ -128,6 +128,11 @@ class LogManager(object):
             return True
         
         if minute_time > last_time:
+            if self.ws.sock:
+                self.logger.info("sock exist")
+            if self.ws.sock.connected:
+                self.logger.info("sock connect true")
+
             self.save_minute(exchange,symbol,last_time,self.minute_data[symbol]['last_data'])
             self.minute_data[symbol]['last_time'] = minute_time
             self.minute_data[symbol]['last_data'] = []
