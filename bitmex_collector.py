@@ -41,10 +41,17 @@ bitmex_ws.sub_depth(symbols)
 while True:
     # if not bitmex_ws.ws.sock or not bitmex_ws.ws.sock.connected :
     #     bitmex_ws.sub_depth(symbols)
-
+    time_now = int(time.time())
     symbols_depth = bitmex_ws.take_depth()
+    if time_now % 60 == 0:
+        if bitmex_ws.ws.sock:
+            bitmex_ws.logger.info("sock exist")
+        if bitmex_ws.ws.sock.connected:
+            bitmex_ws.logger.info("sock connect true")
+
     for symbol in symbols_depth:
         item = symbols_depth[symbol]
         log_manager.check_save_minute('bitmex',symbol,item)
+    
     time.sleep(1)
 
