@@ -10,8 +10,14 @@ dataset = "depth_minute"
 exchange_a = "bitmex"
 symbol_a = "XBTM19"
 
+# exchange_a = "binance"
+# symbol_a = "ethbtc"
+
 exchange_b = "bitmex"
 symbol_b = "XBTU19"
+
+# exchange_b = "binance"
+# symbol_b = "xrpbtc"
 
 time_end = int(time.time())
 time_start = time_end - 3600*24*30

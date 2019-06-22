@@ -45,13 +45,15 @@ logger.addHandler(handler)
 sleep_time = 60*30;
 while True:
     # 币安btc余额
-    binance_total_bal = binance_api.walletBalanceBTC()
-    # 需要扣除的币种
-    binance_btc_minus = binance_api._caculateBtcBal(minus_list)
+    # binance_total_bal = binance_api.walletBalanceBTC()
+    # # 需要扣除的币种
+    # binance_btc_minus = binance_api._caculateBtcBal(minus_list)
 
     # 扣除后的余额
-    binance_bal = binance_total_bal - binance_btc_minus
+    # binance_bal = binance_total_bal - binance_btc_minus
+    binance_bal = 0
 
+    
     # bitmex 余额
     bitmex_bal = bitmex_api.walletBalanceBTC()
 
