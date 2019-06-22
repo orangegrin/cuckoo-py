@@ -53,7 +53,7 @@ while True:
     # binance_bal = binance_total_bal - binance_btc_minus
     binance_bal = 0
 
-    
+
     # bitmex 余额
     bitmex_bal = bitmex_api.walletBalanceBTC()
 
@@ -66,7 +66,7 @@ while True:
     log_data = {
         # 'binance_total_bal':binance_total_bal,
         # 'binance_bal':binance_bal,
-        # 'bitmex_bal':bitmex_bal,
+        'bitmex_bal':bitmex_bal,
         # 'latest_bal':latest_bal,
         # 'origin_bal':origin_bal,
         'win_bal': win_bal,
