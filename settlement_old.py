@@ -42,7 +42,7 @@ formatter = logging.Formatter('%(asctime)s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-sleep_time = 60*30;
+sleep_time = 60*10;
 while True:
     # 币安btc余额
     # binance_total_bal = binance_api.walletBalanceBTC()
