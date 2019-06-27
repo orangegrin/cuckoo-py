@@ -8,13 +8,13 @@ import talib
 
 dataset = "depth_minute"
 exchange_a = "bitmex"
-symbol_a = "XBTM19"
+symbol_a = "ADAM19"
 
 # exchange_a = "binance"
 # symbol_a = "ethbtc"
 
 exchange_b = "bitmex"
-symbol_b = "XBTU19"
+symbol_b = "XRPM19"
 
 # exchange_b = "binance"
 # symbol_b = "xrpbtc"
