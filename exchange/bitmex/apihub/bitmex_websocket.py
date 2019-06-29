@@ -159,11 +159,16 @@ class BitMEXWebsocket:
     def take_depth(self):
         ret_data = {}
 
+        if "orderBook10" not in self.data:
+            return ret_data
+
         for item in self.data['orderBook10']:
             symbol = item['symbol']
             time_int = int(time.time())
             time_ms = time_int
-
+            if item['bids'] == [] or item['asks'] == []:
+                continue
+            
             symbol_depth = {
                 'bid1_price': item['bids'][0][0],
                 'bid1_size': item['bids'][0][1],
