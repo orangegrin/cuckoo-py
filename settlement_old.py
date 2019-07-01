@@ -10,6 +10,8 @@ import logging
 from monitor.exchange.binance_api import BinanceApi
 from monitor.exchange.bitmex_api import BitmexApi
 
+import mysql.connector
+
 config = configparser.ConfigParser()
 config.read('config.ini')
 
@@ -43,6 +45,20 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 sleep_time = 60*10;
+
+
+mydb = mysql.connector.connect(
+  host=config_json['mysql']['host'],
+  user=config_json['mysql']['user'],
+  passwd=config_json['mysql']['pwd'],
+  database=config_json['mysql']['db']
+)
+
+mycursor = mydb.cursor()
+
+
+
+
 while True:
     # 币安btc余额
     # binance_total_bal = binance_api.walletBalanceBTC()
@@ -53,7 +69,7 @@ while True:
     # binance_bal = binance_total_bal - binance_btc_minus
     binance_bal = 0
 
-
+    now = int(time.time())
     # bitmex 余额
     bitmex_bal = bitmex_api.walletBalanceBTC()
 
@@ -62,6 +78,11 @@ while True:
     origin_bal = config_json['origin_bal']['binance']['BTC']['total'] + config_json['origin_bal']['bitmex']['BTC']['total']
     win_bal = latest_bal-origin_bal
     win_rate = win_bal/origin_bal
+
+    sql = "INSERT INTO settlement (create_time, final_bal, win_amount, win_rate) VALUES (%s, %s, %s, %s)"
+    val = (now, latest_bal, win_bal, win_rate)
+    mycursor.execute(sql, val)
+    mydb.commit()
 
     log_data = {
         # 'binance_total_bal':binance_total_bal,
