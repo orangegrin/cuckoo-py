@@ -49,12 +49,6 @@ class BitmexApi(object):
             path='position',
             verb="GET"
         )
-        all_bal = {}
-        for item in resp_data:
-            asset = item['underlying']
-            all_bal[asset] = {
-                'asset': asset,
-                'total': item['openingQty']
-            }
-        return all_bal
+        
+        return resp_data
 

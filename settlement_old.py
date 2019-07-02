@@ -72,11 +72,24 @@ while True:
     now = int(time.time())
     # bitmex 余额
     bitmex_bal = bitmex_api.walletBalanceBTC()
+    position_bal = bitmex_api.getAllPosition()
+    
+
+    #套保盈亏
+    xbtusd_margin = 0
+    if position_bal != []:
+        for pos in position_bal:
+            if pos['symbol'] == 'XBTUSD':
+                xbtusd_margin = pos['realisedPnl']+pos['unrealisedPnl']
+                xbtusd_margin = xbtusd_margin/100000000
+                break
+
 
     # 当前总余额
     latest_bal = binance_bal+bitmex_bal
     origin_bal = config_json['origin_bal']['binance']['BTC']['total'] + config_json['origin_bal']['bitmex']['BTC']['total']
-    win_bal = latest_bal-origin_bal
+    win_bal = latest_bal-origin_bal-xbtusd_margin
+
     win_rate = win_bal/origin_bal
 
     sql = "INSERT INTO settlement (create_time, final_bal, win_amount, win_rate) VALUES (%s, %s, %s, %s)"
