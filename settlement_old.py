@@ -92,22 +92,22 @@ while True:
 
     win_rate = win_bal/origin_bal
 
-    sql = "INSERT INTO settlement (create_time, final_bal, win_amount, win_rate) VALUES (%s, %s, %s, %s)"
-    val = (now, latest_bal, win_bal, win_rate)
+    sql = "INSERT INTO settlement (create_time, final_bal, win_amount, protect_amount, win_rate) VALUES (%s, %s, %s, %s, %s)"
+    val = (now, latest_bal, win_bal, xbtusd_margin, win_rate)
     mycursor.execute(sql, val)
     mydb.commit()
 
-    log_data = {
-        # 'binance_total_bal':binance_total_bal,
-        # 'binance_bal':binance_bal,
-        'bitmex_bal':bitmex_bal,
-        # 'latest_bal':latest_bal,
-        # 'origin_bal':origin_bal,
-        'win_bal': win_bal,
-        'win_rate': win_rate
-    }
+    # log_data = {
+    #     # 'binance_total_bal':binance_total_bal,
+    #     # 'binance_bal':binance_bal,
+    #     'bitmex_bal':bitmex_bal,
+    #     # 'latest_bal':latest_bal,
+    #     # 'origin_bal':origin_bal,
+    #     'win_bal': win_bal,
+    #     'win_rate': win_rate
+    # }
 
-    log_str = json.dumps(log_data)
-    logger.info(log_str)
+    # log_str = json.dumps(log_data)
+    # logger.info(log_str)
     time.sleep(sleep_time)
 
