@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <!-- import CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+  <div id="app">
+        <el-tabs type="border-card">
+                <el-tab-pane label="BTCUZ">
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                        <el-image :src="src_btcuz"></el-image>
+                                </div> 
+                        </div>
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                        <el-image :src="src_btcuz_hist"></el-image>
+                                </div> 
+                        </div>
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                        <el-image :src="src_btcuz_offset"></el-image>
+                                </div> 
+                        </div>
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                        <el-image :src="src_btcuz_hist_offset"></el-image>
+                                </div> 
+                        </div>
+                </el-tab-pane>
+                <el-tab-pane label="ETH">
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_eth"></el-image>
+                                </div> 
+                        </div>
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_eth_hist"></el-image>
+                                </div> 
+                        </div>
+                </el-tab-pane>
+                <el-tab-pane label="BTCMU">
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_btcmu"></el-image>
+                                </div> 
+                        </div>
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_btcmu_hist"></el-image>
+                                </div> 
+                        </div>
+                </el-tab-pane>
+                <el-tab-pane label="BTCXM">
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_btcxm"></el-image>
+                                </div> 
+                        </div>
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_btcxm_hist"></el-image>
+                                </div> 
+                        </div>
+                </el-tab-pane>
+                <el-tab-pane label="BTCXU">
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_btcxu"></el-image>
+                                </div> 
+                        </div>
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_btcxu_hist"></el-image>
+                                </div> 
+                        </div>
+                </el-tab-pane>
+                
+                <el-tab-pane label="EOS">
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_eos"></el-image>
+                                </div> 
+                        </div>
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_eos_hist"></el-image>
+                                </div> 
+                        </div>
+                </el-tab-pane>
+                <el-tab-pane label="LTC">
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_ltc"></el-image>
+                                </div> 
+                        </div>
+                        <div class="demo-image__placeholder">
+                                <div class="block">
+                                    <el-image :src="src_ltc_hist"></el-image>
+                                </div> 
+                        </div>
+                </el-tab-pane>
+        </el-tabs>
+    </div>
+</body>
+  <!-- import Vue before Element -->
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <!-- import JavaScript -->
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <script>
+    new Vue({
+      el: '#app',
+      data: function() {
+        return { 
+            src_eth: './figure/ETH.png',
+            src_eth_hist: './figure/ETH_HIST.png',
+            src_btcmu: './figure/BTCMU.png',
+            src_btcmu_hist: './figure/BTCMU_HIST.png',
+            src_btcxm: './figure/BTCXM.png',
+            src_btcxm_hist: './figure/BTCXM_HIST.png',
+            src_btcxu: './figure/BTCXU.png',
+            src_btcxu_hist: './figure/BTCXU_HIST.png',
+            src_btcuz: './figure/BTCUZ.png',
+            src_btcuz_hist: './figure/BTCUZ_HIST.png',
+            src_btcuz_offset: './figure/BTCUZ_OFFSET.png',
+            src_btcuz_hist_offset: './figure/BTCUZ_HIST_OFFSET.png',
+            src_eos: './figure/EOS.png',
+            src_eos_hist: './figure/EOS_HIST.png',
+            src_ltc: './figure/LTC.png',
+            src_ltc_hist: './figure/LTC_HIST.png'
+         }
+      }
+    })
+  </script>
+</html>

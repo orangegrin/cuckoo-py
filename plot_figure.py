@@ -17,9 +17,7 @@ from matplotlib.lines import Line2D
 import pandas as pd
 from pandas.plotting import register_matplotlib_converters
 import numpy
-from matplotlib import pyplot
-from matplotlib.pyplot import figure
-figure(num=None, figsize=(80, 60), dpi=100, facecolor='w', edgecolor='k')
+
 import talib
 from binance.client import Client
 
@@ -40,7 +38,7 @@ Session = sessionmaker(bind=engine, class_=SessionContextManager)
 Base.metadata.create_all(bind=engine)
 
 SYMBOL_MAP={
-    "bitmex":{"ETH":"ETHM19","EOS":"EOSM19","XRP":"XRPM19","LTC":"LTCM19","BTCM":"XBTM19","BTCU":"XBTU19","BTCX":"XBTUSD"},
+    "bitmex":{"ETH":"ETHM19","EOS":"EOSM19","XRP":"XRPM19","LTC":"LTCM19","BTCM":"XBTM19","BTCU":"XBTU19","BTCZ":"XBTZ19","BTCX":"XBTUSD"},
     "binance":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
     "gateio":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
     "okex":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
@@ -72,12 +70,13 @@ def self_reindex(bitmex_l,akey,binance_l,bkey):
     df_reindexed_binance = df_reindexed_binance.interpolate(method='nearest')
     return df_reindexed_bitmex,df_reindexed_binance
 
-def gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="20190409T00:00:00",end_data_str=None):
+def gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="20190409T00:00:00",end_data_str=None,RAW_VALUE=False):
     # exchangeA,exchangeB "bitmex","binance"
     # akey,bkey "asks","bids"
     # exchangeA[akey],exchangeB[bkey] 
     # BTCXU --> BTCX/BTCU
-    # BTCMU --> BTCM/BTCU 
+    # BTCMU --> BTCM/BTCU  
+    # binance/bitmex - 1    exchangeB/exchangeA - 1
     raw_symbol = symbol
     if not end_data_str:
         end_data_str = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%dT%H:%M:%S") 
@@ -87,7 +86,10 @@ def gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_st
     bitmex = session.query(BKQuoteOrder).filter_by(exchange=exchangeA,symbol=SYMBOL_MAP[exchangeA][symbol]).filter(and_(BKQuoteOrder.timesymbol>=start_date_str,BKQuoteOrder.timesymbol<=end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all()
     if raw_symbol.startswith('BTC'):
         symbol='BTC'+raw_symbol[3]
-    binance = session.query(BKQuoteOrder).filter_by(exchange=exchangeB,symbol=SYMBOL_MAP[exchangeB][symbol]).filter(and_(BKQuoteOrder.timesymbol>=start_date_str,BKQuoteOrder.timesymbol<=end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all()
+    if raw_symbol.startswith('BTC') and symbol=='BTC'+raw_symbol[4]:
+        binance = bitmex
+    else:
+        binance = session.query(BKQuoteOrder).filter_by(exchange=exchangeB,symbol=SYMBOL_MAP[exchangeB][symbol]).filter(and_(BKQuoteOrder.timesymbol>=start_date_str,BKQuoteOrder.timesymbol<=end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all()
     
     bitmex_l = [x.to_dict() for x in bitmex]
     binance_l = [x.to_dict() for x in binance]
@@ -130,8 +132,10 @@ def gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_st
     df_reindexed_bitmex,df_reindexed_binance = self_reindex(bitmex_l,akey,binance_l,bkey)
     
     df_reindexed_bitmex = df_reindexed_bitmex.fillna(method='pad')
+    if RAW_VALUE:
+        return df_reindexed_bitmex/1
     df_reindexed_binance = df_reindexed_binance.fillna(method='pad')
-  
+
     f = df_reindexed_binance/df_reindexed_bitmex-1
     
     return f
@@ -148,25 +152,40 @@ def get_EMAs(data_list, timeperiods):
         EMAs.append(talib.EMA(data_list, timeperiod=timeperiod))
     return EMAs
 
-def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
+def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset=0):
     
     print("########MA-CALC########")
     register_matplotlib_converters()
     
+    
     # data_list = [i for i in list(f.to_dict().items()) if i[0].strftime("%Y-%m-%dT%H:%M:%S")[-2:]=="00"]
     f =  f.resample('1min',closed='left',label='left').mean() 
+    raw_f_vals, raw_f_index = [],[]
+    if raw_f is not None:
+        raw_f = raw_f.resample('1min',closed='left',label='left').mean() 
+        raw_f_data = [i for i in list(f.to_dict().items())] 
+        raw_f_vals = [i[1] for i in raw_f_data]
+        raw_f_index = [i[0] for i in raw_f_data]
+
     data_list = [i for i in list(f.to_dict().items())] 
     vals = [i[1] for i in data_list]
     index = [i[0] for i in data_list]
     
     #calc MAs and MA_avg
-    fig = plt.figure(figsize=(48,27))
-    df_axes=fig.add_subplot(211)
-    df2_axes=fig.add_subplot(212)
+    fig = None
+    df_axes=None
+    df2_axes=None
+    if False and symbol=='BTCMU':
+        fig = plt.figure(figsize=(48,27))
+        df_axes=fig.add_subplot(211)
+        df2_axes=fig.add_subplot(212)
+    else :
+        plt.figure(1)
     min_based_df=None
     if True:
-        MAs = get_MAs(numpy.array(vals),[1440, 1440*2, 1440*3, 1440*4])
-        # MAs = get_EMAs(numpy.array(vals),[1440, 1440*2, 1440*3, 1440*4])
+        # MAs = get_MAs(numpy.array(vals),[1440, 1440,1440,1440*2,1440/2,  1440/6, 1440/4, 1440/8, 1440/12])
+        # MAs = get_MAs(numpy.array(vals),[1440, 1440/2, 1440/3, 1440/4])
+        MAs = get_EMAs(numpy.array(vals),[1440, 1440*2, 1440*3, 1440*4])
         MA_AVG=[]
         for i in zip(*MAs):
             if all(i):
@@ -175,13 +194,42 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
                 MA_AVG.append(0)
         # MA_AVG = [sum(i)/len(i) for i in zip(*MAs) if any(i) else 0]
         # min_based_df=pd.DataFrame({'Diff':vals,'EMA1':MAs[0],'EMA2':MAs[1],'EMA3':MAs[2],'EMA4':MAs[3],'EMA_AVG':MA_AVG},index=index)
-        min_based_df=pd.DataFrame({'Diff':vals,'MA1':MAs[0],'MA2':MAs[1],'MA3':MAs[2],'MA4':MAs[3],'MA_AVG':MA_AVG},index=index)
+        plot_vals = [] 
+        for idx in range(0,len(vals)) :
+            v = vals[idx]
+            if v > 0.03 or v < -0.03:
+                if idx==0:
+                    plot_vals.append(0)
+                else:
+                    plot_vals.append(plot_vals[idx-1])
+            else:
+                plot_vals.append(v)
+        # add offset
+        MA_AVG = [av+offset for av in MA_AVG]
+        # min_based_df=pd.DataFrame({'Diff':vals,'MA1':MAs[0],'MA2':MAs[1],'MA3':MAs[2],'MA4':MAs[3],'MA_AVG':MA_AVG},index=index)
+        min_based_df=pd.DataFrame({'Diff':plot_vals,'MA_AVG':MA_AVG},index=index)
+        # MA_AVG = MAs[3]
+        # min_based_df=pd.DataFrame({'Diff':vals,'MA_AVG':MA_AVG},index=index)
 
     
         min_based_df.fillna(value=0)
         print(len(data_list))
         print([len(i) for i in MAs])
-        df_axes = min_based_df.plot(figsize=(16, 9),ax=df_axes)
+        
+        if df_axes:
+            df_axes = min_based_df.plot(figsize=(16, 9),ax=df_axes)
+        elif raw_f is not None:
+            df_axes = plt.subplot(211)
+            df_axes = min_based_df.plot(figsize=(16, 9),ax=df_axes)
+            # share x only
+            ax2 = plt.subplot(212, sharex=df_axes)
+            plt.plot(raw_f_index,raw_f_vals)
+            # make these tick labels invisible
+            # plt.setp(ax2.get_xticklabels(), visible=False)
+
+            plt.show()
+        else:
+            df_axes = min_based_df.plot(figsize=(32, 9))
         
  
     maxid = f.idxmax()
@@ -219,24 +267,35 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
     custom_legend_marks = []
     custom_legend_labels = []
     if True:
-        up_marker,down_marker = [],[]
+        up_marker,down_marker,hist_data = [],[],[]
+        ##########################################
+        # MA_AVG = MAs[3]
+        ##########################################
         for idx in range(1,len(MA_AVG)):
             if MA_AVG[idx] and MA_AVG[idx-1]:
-                if MA_AVG[idx-1]+0.002 < vals[idx]:
-                    up_marker.append([index[idx],vals[idx]])
-                elif MA_AVG[idx-1]-0.002 > vals[idx]:
-                    down_marker.append([index[idx],vals[idx]])
+                if MA_AVG[idx-1]+0.003 < plot_vals[idx]:
+                    up_marker.append([index[idx],plot_vals[idx]])
+                elif MA_AVG[idx-1]-0.003 > plot_vals[idx]:
+                    down_marker.append([index[idx],plot_vals[idx]])
+                
+                if idx >= 60*24*4:
+                    if vals[idx] > MA_AVG[idx-1] or  vals[idx] < MA_AVG[idx-1] :
+                        tmp_v = vals[idx] - (MA_AVG[idx-1]+0.0005)
+                        hist_data.append(tmp_v)  
+        if hist_data:
+            plot_hist(hist_data,symbol,offset=offset)     
+            plt.figure(2)       
         for i in up_marker:
-            df_axes.scatter(i[0],i[1],s=40,c="red",marker="p")
+            plt.scatter(i[0],i[1],s=40,c="red",marker="p")
         for i in down_marker:
-            df_axes.scatter(i[0],i[1],s=40,c="green",marker="p")
+            plt.scatter(i[0],i[1],s=40,c="green",marker="p")
         custom_legend_marks.append(Line2D([0], [0], marker='o', color='w',markerfacecolor='green', markersize=15))
         custom_legend_marks.append(Line2D([0], [0], marker='o', color='w',markerfacecolor='red', markersize=15))
         custom_legend_labels += ["Predict trade point"]*2
 
 
     #plot real trade point
-    if symbol=='BTCMU':
+    if False and symbol=='BTCMU':
         # ax = fig.add_subplot(212)
         # ax.plot(min_based_df.index,vals)
         df2_axes = pd.DataFrame({'Diff':vals},index=index).plot(figsize=(16, 9),ax=df2_axes)
@@ -257,7 +316,9 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
 
 
     #plot max/min point
-    if True:
+    if False:
+        # if not df_axes:
+        #     df_axes=plt
         df_axes.annotate('max({t},{v})'.format(t = maxid,v='{:.8f}'.format(f[maxid])), xy=(maxid, f[maxid]),arrowprops=dict(facecolor='black', shrink=0.05))
         df_axes.axhline(y=f[maxid],linestyle="--",color="gray")
         # df_axes.text(maxid,f[maxid],'max({t},{v})'.format(t = maxid.strftime("%m%d#%H:%M:%S") ,v=f[maxid]))
@@ -265,23 +326,92 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol):
         df_axes.annotate('min({t},{v})'.format(t = minid,v='{:.8f}'.format(f[minid])), xy=(minid, f[minid]),arrowprops=dict(facecolor='black', shrink=0.05))
         df_axes.axhline(y=f[minid],linestyle="--",color="gray")
         # df_axes.text(minid,f[minid],'min({t},{v})'.format(t = minid.strftime("%m%d#%H:%M:%S") ,v=f[minid]))
+        # df_axes.axhline(y=0.0,linestyle="-",color="gray")
+        if df2_axes:
+            df2_axes.axhline(y=0.0,linestyle="-",color="gray")
     
-    if custom_legend_marks:
-        legend1 = pyplot.legend(custom_legend_marks, custom_legend_labels)
+    if False and custom_legend_marks and symbol == 'BTCMU' :
+        legend1 = plt.legend(custom_legend_marks, custom_legend_labels)
         df2_axes.add_artist(legend1)
         # plt.legend(custom_legend_marks, custom_legend_labels)
-    plt.title("{symbol}---{EB}[{BK}]/{EA}[{AK}]-1".format(symbol=symbol,EA=exchangeA,AK=akey,EB=exchangeB,BK=bkey))
+
+    # add help line
+    for yval in [0.0,0.01,-0.01,0.02,-0.02,0.03,-0.03]:
+        df_axes.axhline(y=yval,linestyle="--",color="black")
+
+    plt.title("{symbol}---|{EB}[{BK}]/{EA}[{AK}]-1|---point +/-0.003--offest[{OFFSET}]".format(symbol=symbol,EA=exchangeA,AK=akey,EB=exchangeB,BK=bkey,OFFSET=str(offset)))
     # mplcursors.cursor(fig)
-    plt.subplots_adjust(hspace=1)
+    # plt.subplots_adjust(hspace=1)
     
     dst_file = "./figure/"+'-'.join([exchangeA,exchangeB,symbol,datetime.now().strftime("%Y-%m-%dT%H%M%S")])+".png"
+    upload_file = "./figure/"+symbol.upper()+".png"
+    if offset != 0:
+        dst_file = "./figure/"+'-'.join([exchangeA,exchangeB,symbol,"OFFSET",datetime.now().strftime("%Y-%m-%dT%H%M%S")])+".png"
+        upload_file = "./figure/"+(symbol+"_OFFSET").upper()+".png"
+    
     plt.savefig(dst_file)
-    shutil.copyfile(dst_file,"./figure/"+symbol.upper()+".png")
-    # fig.show()
+    shutil.copyfile(dst_file,upload_file)
+    # plt.show()
+    plt.close()
 
-def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="20190411 18:00:00",end_data_str=None):
+def plot_hist(data_list,symbol,offset=0):
+    tmp_data_list = []
+    for x in data_list:
+        if abs(x)>0.01:
+            continue
+        if abs((x*1000 - int(x*1000))*10) >=5:
+            if x > 0:
+                tmp_data_list.append((int(x*1000)*10+5)/10000+0.00025)
+            else:
+                tmp_data_list.append((int(x*1000)*10+5)/10000-0.00025)
+        else:
+            if x > 0:
+                tmp_data_list.append((int(x*1000)*10)/10000+0.00025)
+            else:
+                tmp_data_list.append((int(x*1000)*10)/10000-0.00025)
+
+    data_list = tmp_data_list
+    data_keys = set(data_list)
+    data_dict = {k:0 for k in data_keys}
+    
+    for v in data_list:
+        data_dict[v] = data_dict[v]+1
+    above0,blow0 = len([ x for x in data_list if x>0]),len([ x for x in data_list if x<0])
+
+    g = plt.figure(figsize=(16,9))
+    plt.title("{symbol}--Offset={OFFSET}".format(symbol=symbol,OFFSET=str(offset)))
+    ax = plt.gca()                                           
+    ax.spines['right'].set_color('none') 
+    ax.spines['top'].set_color('none')        
+    ax.xaxis.set_ticks_position('bottom')   
+    ax.yaxis.set_ticks_position('left')          
+    ax.spines['bottom'].set_position(('data', 0))   
+    ax.spines['left'].set_position(('data', 0))
+    ax.set_yticks([])
+    for px,y in data_dict.items():
+        # px = x/1000+0.0005 if x > 0 else x/1000-0.0005
+        color = "blue" if px > 0 else "orange"
+        plt.bar(px, y, 0.0005, color=color)
+        yp = (y/above0)*100 if px>0 else (y/blow0)*100
+        plt.text(px, y+0.05, '{:.2f}%'.format(yp), ha='center', va= 'bottom',fontsize=6)
+    
+    dst_file = "./figure/"+symbol.upper()+"_HIST.png"
+    if offset!=0:
+        dst_file = "./figure/"+symbol.upper()+"_HIST_OFFSET.png"
+
+    plt.savefig(dst_file)
+    print("save: "+dst_file)
+    plt.close()
+
+def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="20190411 18:00:00",end_data_str=None,RAW_DATA=False,offset=0):
     
     f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=start_date_str,end_data_str=end_data_str)
+    raw_f = None
+    if RAW_DATA:
+        raw_symbol = symbol
+        if symbol.startswith("XBT"):
+            raw_symbol = "XBTXX"
+        raw_f = gen_plot_datafram(session,exchangeA,akey,exchangeA,akey,raw_symbol,start_date_str=start_date_str,end_data_str=end_data_str,RAW_VALUE=True)
     #plot hist figure
     if False:
         plt.subplot(212)
@@ -302,7 +432,10 @@ def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=
 
         mplcursors.cursor(fig)
 
-    plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol)
+    plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=raw_f)
+    if offset!=0:
+        plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=raw_f,offset=0.003)
+
 
 def get_bitmex_kline_data(symbol,binSize="1m",start_time=None):
 
@@ -351,6 +484,11 @@ def get_trade_point_from_db(session,symbol,start_time_str):
     print(len(ret))
     return ret
 
+# def get_kline_from_db(start_date_str):
+    
+#     bitmex = session.query(BKQuoteOrder).filter_by(exchange=exchangeA,symbol=SYMBOL_MAP[exchangeA][symbol]).filter(and_(BKQuoteOrder.timesymbol>=start_date_str,BKQuoteOrder.timesymbol<=end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all()
+#     pass
+
 def get_trade_point_from_csv(csv = 'test\TradeHistory(symbol=EOSM19)2019-4-17.csv'):
     
     ret = []
@@ -368,7 +506,7 @@ def scp_file_to_remote(upfiles):
     ssh.connect('150.109.52.225', 22, 'ray',key_filename='./figure/id_rsa')
 
     ftp_client=ssh.open_sftp()
-    [ftp_client.put('./figure/{fig_name}.png'.format(fig_name=img_name),'/home/ray/web/figure/{fig_name}.png'.format(fig_name=img_name)) for img_name in upfiles]
+    [ftp_client.put('./figure/{fig_name}.png'.format(fig_name=img_name),'/home/ray/web/figure/{fig_name}.png'.format(fig_name=img_name)) for img_name in upfiles if os.path.exists('./figure/{fig_name}.png'.format(fig_name=img_name))]
     ftp_client.close()
     ssh.close()
 
@@ -382,19 +520,20 @@ if __name__ == "__main__":
     while True:
         try:
             with Session() as session:
-                Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=11,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
-                plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str=Start_date_str)
-                plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCXM",start_date_str=Start_date_str)
-                plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCMU",start_date_str=Start_date_str)
-                plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCXU",start_date_str=Start_date_str)
-                plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str=Start_date_str)
-                plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str=Start_date_str)
-
-            scp_file_to_remote(['ETH','BTCMU','BTCXU','BTCXM','EOS','LTC'])
+                Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=12,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
+                plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str=Start_date_str,offset=0.003)
+                # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str="2019-06-20T00:00:00")
+                # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCMU",start_date_str=Start_date_str)
+                # plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str=Start_date_str)
+                # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCXM",start_date_str=Start_date_str)
+                # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCXU",start_date_str=Start_date_str)
+                # plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str=Start_date_str)
+                # plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str=Start_date_str)
+            scp_file_to_remote(['ETH','BTCMU','BTCXU','BTCUZ','BTCXM','EOS','LTC','ETH_HIST','BTCMU_HIST','BTCXU_HIST','BTCUZ_HIST','BTCXM_HIST','EOS_HIST','LTC_HIST','ETH_OFFSET','BTCMU_OFFSET','BTCXU_OFFSET','BTCUZ_OFFSET','BTCXM_OFFSET','EOS_OFFSET','LTC_OFFSET','ETH_HIST_OFFSET','BTCMU_HIST_OFFSET','BTCXU_HIST_OFFSET','BTCUZ_HIST_OFFSET','BTCXM_HIST_OFFSET','EOS_HIST_OFFSET','LTC_HIST_OFFSET'])
             print(datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
             time.sleep(60*60*2)
-        except Exception:
-            
+        except Exception as e:
+            print(e)
             time.sleep(60*10)
             pass
     

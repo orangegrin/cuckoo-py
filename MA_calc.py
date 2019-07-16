@@ -72,7 +72,7 @@ def calc_latest_diff_data(session,exchangeA,akey,exchangeB,bkey,symbol,latest_da
     MA_AVG=[]
     for i in zip(*MAs):
         if all(i):
-            MA_AVG.append(sum(i)/len(i))
+            MA_AVG.append(sum(i)/len(i)+0.0005)
         else:
             MA_AVG.append(0)
     # MA_AVG = [sum(i)/len(i) for i in zip(*MAs) if any(i) else 0]
