@@ -13,6 +13,7 @@ from db.model import Base, SessionContextManager,BKQuoteOrder,IQuoteOrder,TradeH
 import traceback,time
 import mplcursors
 import matplotlib.pyplot as plt
+import matplotlib.dates as dates
 from matplotlib.lines import Line2D
 import pandas as pd
 from pandas.plotting import register_matplotlib_converters
@@ -230,8 +231,11 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset
             plt.show()
         else:
             df_axes = min_based_df.plot(figsize=(32, 9))
-        
- 
+        df_axes.xaxis.set_minor_locator(dates.HourLocator(interval=1))
+        df_axes.xaxis.set_major_locator(dates.DayLocator())
+        df_axes.xaxis.grid(True, which="major")
+        df_axes.yaxis.grid()
+
     maxid = f.idxmax()
     minid = f.idxmin()
     print(maxid,minid)
@@ -336,8 +340,8 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset
         # plt.legend(custom_legend_marks, custom_legend_labels)
 
     # add help line
-    for yval in [0.0,0.01,-0.01,0.02,-0.02,0.03,-0.03]:
-        df_axes.axhline(y=yval,linestyle="--",color="black")
+    # for yval in [0.0,0.01,-0.01,0.02,-0.02,0.03,-0.03]:
+    #     df_axes.axhline(y=yval,linestyle="--",color="black")
 
     plt.title("{symbol}---|{EB}[{BK}]/{EA}[{AK}]-1|---point +/-0.003--offest[{OFFSET}]".format(symbol=symbol,EA=exchangeA,AK=akey,EB=exchangeB,BK=bkey,OFFSET=str(offset)))
     # mplcursors.cursor(fig)
