@@ -18,8 +18,10 @@ from matplotlib.lines import Line2D
 import pandas as pd
 from pandas.plotting import register_matplotlib_converters
 import numpy
-
+import redis
 import talib
+import requests
+import json
 from binance.client import Client
 
 from market_maker.bitmex_mon_api import BitMexMon
@@ -46,6 +48,7 @@ SYMBOL_MAP={
     "fcoin":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"}
 }
 
+SQL_DATA_CACHE = {}
 tzutc_8 = timezone(timedelta(hours=8))
 
 def self_reindex(bitmex_l,akey,binance_l,bkey):
@@ -84,13 +87,13 @@ def gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_st
     if raw_symbol.startswith('BTC'):
         symbol='BTC'+raw_symbol[4]
     
-    bitmex = session.query(BKQuoteOrder).filter_by(exchange=exchangeA,symbol=SYMBOL_MAP[exchangeA][symbol]).filter(and_(BKQuoteOrder.timesymbol>=start_date_str,BKQuoteOrder.timesymbol<=end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all()
+    bitmex = session.query(BKQuoteOrder).filter_by(exchange=exchangeA,symbol=SYMBOL_MAP[exchangeA][symbol]).filter(and_(BKQuoteOrder.timesymbol>start_date_str,BKQuoteOrder.timesymbol<end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all()
     if raw_symbol.startswith('BTC'):
         symbol='BTC'+raw_symbol[3]
     if raw_symbol.startswith('BTC') and symbol=='BTC'+raw_symbol[4]:
         binance = bitmex
     else:
-        binance = session.query(BKQuoteOrder).filter_by(exchange=exchangeB,symbol=SYMBOL_MAP[exchangeB][symbol]).filter(and_(BKQuoteOrder.timesymbol>=start_date_str,BKQuoteOrder.timesymbol<=end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all()
+        binance = session.query(BKQuoteOrder).filter_by(exchange=exchangeB,symbol=SYMBOL_MAP[exchangeB][symbol]).filter(and_(BKQuoteOrder.timesymbol>start_date_str,BKQuoteOrder.timesymbol<end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all()
     
     bitmex_l = [x.to_dict() for x in bitmex]
     binance_l = [x.to_dict() for x in binance]
@@ -153,14 +156,43 @@ def get_EMAs(data_list, timeperiods):
         EMAs.append(talib.EMA(data_list, timeperiod=timeperiod))
     return EMAs
 
+def merge_cut_df(df_raw,df_new,num=1440*4):
+    tmp_d  = df_raw.to_dict()
+    tmp_d.update(df_new.to_dict())
+    tmp_keys = sorted(tmp_d.keys())[-num:]
+    tmp_d = { key:tmp_d[key] for key in tmp_keys}
+    return pd.Series(tmp_d)
+
+def pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str,end_data_str):
+    
+    
+    global SQL_DATA_CACHE
+    data_cache_key = '_'.join([exchangeA,akey,exchangeB,bkey,symbol])
+    print("Plot {} start:".format(symbol))
+    f = None
+    if SQL_DATA_CACHE.get(data_cache_key,None) is None:
+        print(start_date_str)
+        f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str)
+        if f is not None:
+            f = f.resample('1min',closed='left',label='left').mean()
+        SQL_DATA_CACHE[data_cache_key] = {'raw_data':f,'next_stat_ts':(datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:00")}
+    else:
+        start_date_str = SQL_DATA_CACHE[data_cache_key]['next_stat_ts'] 
+        print(start_date_str)
+        f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str)
+        if f is not None:
+            f = f.resample('1min',closed='left',label='left').mean()
+            SQL_DATA_CACHE[data_cache_key]['raw_data'] = merge_cut_df(SQL_DATA_CACHE[data_cache_key]['raw_data'],f)
+        SQL_DATA_CACHE[data_cache_key]['next_stat_ts'] = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:00")
+    return SQL_DATA_CACHE[data_cache_key]['raw_data']
+
 def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset=0):
     
     print("########MA-CALC########")
     register_matplotlib_converters()
     
-    
     # data_list = [i for i in list(f.to_dict().items()) if i[0].strftime("%Y-%m-%dT%H:%M:%S")[-2:]=="00"]
-    f =  f.resample('1min',closed='left',label='left').mean() 
+    # f =  f.resample('1min',closed='left',label='left').mean() 
     raw_f_vals, raw_f_index = [],[]
     if raw_f is not None:
         raw_f = raw_f.resample('1min',closed='left',label='left').mean() 
@@ -409,7 +441,11 @@ def plot_hist(data_list,symbol,offset=0):
 
 def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="20190411 18:00:00",end_data_str=None,RAW_DATA=False,offset=0):
     
-    f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=start_date_str,end_data_str=end_data_str)
+    f = pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=start_date_str,end_data_str=end_data_str)
+    # f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=start_date_str,end_data_str=end_data_str)
+    # RAW_DATAFRAM_CACHE = f
+    # return None
+    #want plot price value,so get raw price data,not diff data 
     raw_f = None
     if RAW_DATA:
         raw_symbol = symbol
@@ -438,7 +474,7 @@ def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=
 
     plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=raw_f)
     if offset!=0:
-        plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=raw_f,offset=0.003)
+        plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=raw_f,offset=offset)
 
 
 def get_bitmex_kline_data(symbol,binSize="1m",start_time=None):
@@ -514,18 +550,27 @@ def scp_file_to_remote(upfiles):
     ftp_client.close()
     ssh.close()
 
+def get_diff_offset_online(symbol_pair,api="http://127.0.0.1:8001/diff_offset"):
+    try:
+        resp = requests.get(api,params={"symbol_pair":symbol_pair})
+        return json.loads(resp.content)["diff_offset"] 
+    except Exception:
+        print(traceback.format_exc())
+        return 0
+
 if __name__ == "__main__":
     
     # get_binance_kline_data('ETHBTC',start_time=1557569880000)
     # ret = get_bitmex_kline_data('ETHM19',start_time=datetime(2019,5,11,0,0))
     # print(len(ret))
     # get_trade_point_from_bitmex('ETHM19')
-    
     while True:
         try:
             with Session() as session:
-                Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=12,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
-                plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str=Start_date_str,offset=0.003)
+                Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=1,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
+                for symbol_pair in ["BTCUZ"]:
+                    offset = get_diff_offset_online(symbol_pair)
+                    plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str=Start_date_str,offset=offset)
                 # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str="2019-06-20T00:00:00")
                 # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCMU",start_date_str=Start_date_str)
                 # plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str=Start_date_str)
@@ -533,9 +578,10 @@ if __name__ == "__main__":
                 # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCXU",start_date_str=Start_date_str)
                 # plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str=Start_date_str)
                 # plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str=Start_date_str)
-            scp_file_to_remote(['ETH','BTCMU','BTCXU','BTCUZ','BTCXM','EOS','LTC','ETH_HIST','BTCMU_HIST','BTCXU_HIST','BTCUZ_HIST','BTCXM_HIST','EOS_HIST','LTC_HIST','ETH_OFFSET','BTCMU_OFFSET','BTCXU_OFFSET','BTCUZ_OFFSET','BTCXM_OFFSET','EOS_OFFSET','LTC_OFFSET','ETH_HIST_OFFSET','BTCMU_HIST_OFFSET','BTCXU_HIST_OFFSET','BTCUZ_HIST_OFFSET','BTCXM_HIST_OFFSET','EOS_HIST_OFFSET','LTC_HIST_OFFSET'])
+            # scp_file_to_remote(['ETH','BTCMU','BTCXU','BTCUZ','BTCXM','EOS','LTC','ETH_HIST','BTCMU_HIST','BTCXU_HIST','BTCUZ_HIST','BTCXM_HIST','EOS_HIST','LTC_HIST','ETH_OFFSET','BTCMU_OFFSET','BTCXU_OFFSET','BTCUZ_OFFSET','BTCXM_OFFSET','EOS_OFFSET','LTC_OFFSET','ETH_HIST_OFFSET','BTCMU_HIST_OFFSET','BTCXU_HIST_OFFSET','BTCUZ_HIST_OFFSET','BTCXM_HIST_OFFSET','EOS_HIST_OFFSET','LTC_HIST_OFFSET'])
             print(datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
-            time.sleep(60*60*2)
+            time.sleep(10)
+            # time.sleep(60*60*2)
         except Exception as e:
             print(e)
             time.sleep(60*10)

@@ -25,6 +25,7 @@ ta-lib = "*"
 sanic = "*"
 tensorflow = "*"
 paramiko = "*"
+redis = "*"
 
 [requires]
 python_version = "3.7"
