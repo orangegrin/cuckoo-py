@@ -186,7 +186,7 @@ def pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str,end_da
         SQL_DATA_CACHE[data_cache_key]['next_stat_ts'] = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:00")
     return SQL_DATA_CACHE[data_cache_key]['raw_data']
 
-def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset=0):
+def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset=0,profit_range=0.002):
     
     print("########MA-CALC########")
     register_matplotlib_converters()
@@ -309,9 +309,9 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset
         ##########################################
         for idx in range(1,len(MA_AVG)):
             if MA_AVG[idx] and MA_AVG[idx-1]:
-                if MA_AVG[idx-1]+0.003 < plot_vals[idx]:
+                if MA_AVG[idx-1]+profit_range < plot_vals[idx]:
                     up_marker.append([index[idx],plot_vals[idx]])
-                elif MA_AVG[idx-1]-0.003 > plot_vals[idx]:
+                elif MA_AVG[idx-1]-profit_range > plot_vals[idx]:
                     down_marker.append([index[idx],plot_vals[idx]])
                 
                 if idx >= 60*24*4:
@@ -439,7 +439,7 @@ def plot_hist(data_list,symbol,offset=0):
     print("save: "+dst_file)
     plt.close()
 
-def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="20190411 18:00:00",end_data_str=None,RAW_DATA=False,offset=0):
+def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="20190411 18:00:00",end_data_str=None,RAW_DATA=False,offset=0,profit_range=0.002):
     
     f = pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=start_date_str,end_data_str=end_data_str)
     # f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=start_date_str,end_data_str=end_data_str)
@@ -472,9 +472,9 @@ def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=
 
         mplcursors.cursor(fig)
 
-    plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=raw_f)
+    plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=raw_f,profit_range=profit_range)
     if offset!=0:
-        plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=raw_f,offset=offset)
+        plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=raw_f,offset=offset,profit_range=profit_range)
 
 
 def get_bitmex_kline_data(symbol,binSize="1m",start_time=None):
@@ -553,10 +553,19 @@ def scp_file_to_remote(upfiles):
 def get_diff_offset_online(symbol_pair,api="http://127.0.0.1:8001/diff_offset"):
     try:
         resp = requests.get(api,params={"symbol_pair":symbol_pair})
-        return json.loads(resp.content)["diff_offset"] 
+        return json.loads(resp.content)["value"] 
     except Exception:
         print(traceback.format_exc())
         return 0
+
+def get_profit_range_online(symbol_pair,api="http://127.0.0.1:8001/profit_range"):
+    try:
+        resp = requests.get(api,params={"symbol_pair":symbol_pair})
+        return json.loads(resp.content)["value"] 
+    except Exception:
+        print(traceback.format_exc())
+        return 0
+
 
 if __name__ == "__main__":
     
@@ -564,13 +573,19 @@ if __name__ == "__main__":
     # ret = get_bitmex_kline_data('ETHM19',start_time=datetime(2019,5,11,0,0))
     # print(len(ret))
     # get_trade_point_from_bitmex('ETHM19')
+    last_profit_range = 0.002
     while True:
         try:
             with Session() as session:
                 Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=1,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
                 for symbol_pair in ["BTCUZ"]:
                     offset = get_diff_offset_online(symbol_pair)
-                    plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str=Start_date_str,offset=offset)
+                    profit_range = get_profit_range_online(symbol_pair)
+                    if profit_range<=0:
+                        profit_range = last_profit_range
+                    else:
+                        last_profit_range = profit_range
+                    plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str=Start_date_str,offset=offset,profit_range=profit_range)
                 # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str="2019-06-20T00:00:00")
                 # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCMU",start_date_str=Start_date_str)
                 # plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str=Start_date_str)
