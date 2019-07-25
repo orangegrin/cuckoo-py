@@ -18,12 +18,13 @@ class Plot extends Controller
         
         $python_path = getenv('BPLOT_PYTHON_PATH');
         $python_file = $python_path.'/bqplot.py';
+        $plot_file = $python_path."/plothtml/$file_name";
+
         // var_dump($python_path);
         $cmd = <<<EOT
-        python3 $python_file --exchange_a=$exchange_a --exchange_b=$exchange_b --symbol_a=$symbol_a --symbol_b=$symbol_b --time_end=$end_time --file_name=$file_name
+        python3 $python_file --exchange_a=$exchange_a --exchange_b=$exchange_b --symbol_a=$symbol_a --symbol_b=$symbol_b --time_end=$end_time --file_name=$plot_file
 EOT;
         // var_dump($cmd);
-        $plot_file = $python_path."/plothtml/$file_name";
         $ret = \shell_exec($cmd);
         echo file_get_contents($plot_file);
         // var_dump($plot_file);

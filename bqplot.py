@@ -74,4 +74,4 @@ plot_line = [
     line_ma4
 ]
 
-plot(plot_line, filename='./plothtml/'+file_name)
+plot(plot_line, filename=file_name)
