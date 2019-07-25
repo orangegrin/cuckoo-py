@@ -16,3 +16,4 @@ Route::get('/', function () {
 });
 
 Route::get('/settlement', 'Settlement@index');
+Route::get('/plot', 'Plot@index');

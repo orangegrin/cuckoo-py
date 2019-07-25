@@ -5,16 +5,34 @@ import time
 from plotly.offline import plot
 from plotly.graph_objs import Scatter, Box
 import talib
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--exchange_a', type=str, help='the exchange A')
+parser.add_argument('--exchange_b', type=str, help='the exchange B')
+
+parser.add_argument('--symbol_a', type=str, help='the symbol A')
+
+parser.add_argument('--symbol_b', type=str, help='the symbol B')
+parser.add_argument('--time_end', type=str, help='the time_end')
+parser.add_argument('--file_name', type=str, help='the file_name')
+
+
+args = parser.parse_args()
 
 dataset = "depth_minute"
-exchange_a = "bitmex"
-symbol_a = "XBTZ19"
+
+
+exchange_a = args.exchange_a
+symbol_a = args.symbol_a
 
 # exchange_a = "binance"
 # symbol_a = "ethbtc"
 
-exchange_b = "bitmex"
-symbol_b = "XBTU19"
+exchange_b = args.exchange_b
+symbol_b = args.symbol_b
+
+file_name = args.file_name
 
 # exchange_b = "binance"
 # symbol_b = "xrpbtc"
@@ -29,8 +47,8 @@ data_b = mbq.query_depth_minute(exchange=exchange_b,symbol=symbol_b,time_start=t
 
 # series_a = pd.Series(data_a['ask1_price'],index=data_a['time_int'])
 # series_b = pd.Series(data_b['bid1_price'],index=data_b['time_int'])
-diff_num = data_b['bid1_price']-data_a['ask1_price']
-diff_rate = diff_num/data_a['ask1_price']
+diff_rate = data_a['bid1_price']/data_b['ask1_price']-1
+# diff_rate = diff_num/data_a['ask1_price']
 # print(diff_rate.values)
 # print(diff_rate)
 # diff_rate2 = diff_rate * 2
@@ -56,4 +74,4 @@ plot_line = [
     line_ma4
 ]
 
-plot(plot_line, filename='./plothtml/plot-11.html')
+plot(plot_line, filename='./plothtml/'+file_name)
