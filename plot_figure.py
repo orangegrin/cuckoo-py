@@ -53,7 +53,7 @@ tzutc_8 = timezone(timedelta(hours=8))
 
 def self_reindex(bitmex_l,akey,binance_l,bkey):
     # dkey: 'asks'
-    
+
     # bitmex_series = pd.Series([d[akey] for d in bitmex_l], index=pd.to_datetime([d['timestamp'].replace(microsecond=0) for d in bitmex_l]))
     # binance_series = pd.Series([d[bkey] for d in binance_l], index=pd.to_datetime([d['timestamp'].replace(microsecond=0) for d in binance_l]))
     bitmex_series = pd.Series([d[akey] for d in bitmex_l], index=pd.to_datetime([d['timestamp'].replace(microsecond=0).astimezone(tzutc_8) for d in bitmex_l]))
@@ -73,6 +73,43 @@ def self_reindex(bitmex_l,akey,binance_l,bkey):
     df_reindexed_bitmex = df_reindexed_bitmex.interpolate(method='nearest')
     df_reindexed_binance = df_reindexed_binance.interpolate(method='nearest')
     return df_reindexed_bitmex,df_reindexed_binance
+
+def self_reindex_sig(bitmex_l,key,start_date,end_date):
+    bitmex_series = pd.Series([d[key] for d in bitmex_l], index=pd.to_datetime([d['timestamp'].replace(microsecond=0).astimezone(tzutc_8) for d in bitmex_l]))
+    df_reindexed_bitmex = bitmex_series.reindex(pd.date_range(start=start_date,end=end_date,freq='1S'))  
+    df_reindexed_bitmex = df_reindexed_bitmex.interpolate(method='nearest') 
+    return df_reindexed_bitmex
+
+def query_symbol_datafram(session,exchange,key,symbol,start_date_str="20190409T00:00:00",end_data_str="20190409T00:00:00",RAW_VALUE=False):
+  
+    exchang_data_A = session.query(BKQuoteOrder).filter_by(exchange=exchange,symbol=SYMBOL_MAP[exchange][symbol]).filter(and_(BKQuoteOrder.timesymbol>start_date_str,BKQuoteOrder.timesymbol<end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all() 
+    
+    exchang_data_A_l = [x.to_dict() for x in exchang_data_A]
+
+    print(len(exchang_data_A_l))
+    print("------------------")
+    if ( exchang_data_A_l == [] ):
+        print('\nNo data found in selected time range!!!\n')
+        return None
+
+    start_date = datetime.strptime(start_date_str,'%Y%m%dT%H:%M:%S')
+    end_date = datetime.strptime(end_data_str,'%Y%m%dT%H:%M:%S')
+
+    exchang_data_A0 = exchang_data_A_l[0]['timestamp'].replace(microsecond=0)
+
+    if start_date<exchang_data_A0:
+        exchang_data_A_tmp = session.query(BKQuoteOrder).filter_by(exchange=exchange,symbol=SYMBOL_MAP[exchange][symbol]).filter(and_(BKQuoteOrder.timesymbol<=start_date_str)).order_by(BKQuoteOrder.timesymbol.desc()).limit(1).all()
+        tmp_item1 = exchang_data_A_tmp[0].to_dict()
+        tmp_item1['timestamp'] = start_date
+        exchang_data_A_l = [tmp_item1]+exchang_data_A_l
+    
+    print(len(exchang_data_A_l))
+    
+    df_reindexed_exchang_data_A = self_reindex_sig(exchang_data_A_l,key,start_date,end_date)
+    
+    df_reindexed_exchang_data_A = df_reindexed_exchang_data_A.fillna(method='pad')
+    
+    return df_reindexed_exchang_data_A
 
 def gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="20190409T00:00:00",end_data_str=None,RAW_VALUE=False):
     # exchangeA,exchangeB "bitmex","binance"
