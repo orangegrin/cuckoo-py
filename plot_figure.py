@@ -18,7 +18,6 @@ from matplotlib.lines import Line2D
 import pandas as pd
 from pandas.plotting import register_matplotlib_converters
 import numpy
-import redis
 import talib
 import requests
 import json
@@ -156,7 +155,7 @@ def get_EMAs(data_list, timeperiods):
         EMAs.append(talib.EMA(data_list, timeperiod=timeperiod))
     return EMAs
 
-def merge_cut_df(df_raw,df_new,num=1440*4):
+def merge_cut_df(df_raw,df_new,num=1440*12):
     tmp_d  = df_raw.to_dict()
     tmp_d.update(df_new.to_dict())
     tmp_keys = sorted(tmp_d.keys())[-num:]
@@ -375,7 +374,7 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset
     # for yval in [0.0,0.01,-0.01,0.02,-0.02,0.03,-0.03]:
     #     df_axes.axhline(y=yval,linestyle="--",color="black")
 
-    plt.title("{symbol}---|{EB}[{BK}]/{EA}[{AK}]-1|---point +/-0.003--offest[{OFFSET}]".format(symbol=symbol,EA=exchangeA,AK=akey,EB=exchangeB,BK=bkey,OFFSET=str(offset)))
+    plt.title("{symbol}---|{EB}[{BK}]/{EA}[{AK}]-1|---point +/-{PROFITRANGE}--offest[{OFFSET}]".format(symbol=symbol,EA=exchangeA,AK=akey,EB=exchangeB,BK=bkey,PROFITRANGE=str(profit_range),OFFSET=str(offset)))
     # mplcursors.cursor(fig)
     # plt.subplots_adjust(hspace=1)
     
@@ -550,17 +549,19 @@ def scp_file_to_remote(upfiles):
     ftp_client.close()
     ssh.close()
 
-def get_diff_offset_online(symbol_pair,api="http://127.0.0.1:8001/diff_offset"):
+def get_diff_offset_online(symbol_pair,api="http://raylee.5166.info:8001/diff_offset"):
     try:
         resp = requests.get(api,params={"symbol_pair":symbol_pair})
+        # print(resp.content)
         return json.loads(resp.content)["value"] 
     except Exception:
         print(traceback.format_exc())
         return 0
 
-def get_profit_range_online(symbol_pair,api="http://127.0.0.1:8001/profit_range"):
+def get_profit_range_online(symbol_pair,api="http://raylee.5166.info:8001/profit_range"):
     try:
         resp = requests.get(api,params={"symbol_pair":symbol_pair})
+        # print(resp.content)
         return json.loads(resp.content)["value"] 
     except Exception:
         print(traceback.format_exc())
@@ -574,17 +575,24 @@ if __name__ == "__main__":
     # print(len(ret))
     # get_trade_point_from_bitmex('ETHM19')
     last_profit_range = 0.002
+    last_profit_dict={}
+    last_offset_dict={}
     while True:
         try:
             with Session() as session:
-                Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=1,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
+                Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=12,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
                 for symbol_pair in ["BTCUZ"]:
                     offset = get_diff_offset_online(symbol_pair)
                     profit_range = get_profit_range_online(symbol_pair)
+                    print(offset,profit_range)
+                    
                     if profit_range<=0:
                         profit_range = last_profit_range
                     else:
                         last_profit_range = profit_range
+                    
+                    last_offset_dict[symbol_pair]=offset
+                    last_profit_dict[symbol_pair]=profit_range
                     plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str=Start_date_str,offset=offset,profit_range=profit_range)
                 # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str="2019-06-20T00:00:00")
                 # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCMU",start_date_str=Start_date_str)
@@ -593,12 +601,26 @@ if __name__ == "__main__":
                 # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCXU",start_date_str=Start_date_str)
                 # plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str=Start_date_str)
                 # plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str=Start_date_str)
-            # scp_file_to_remote(['ETH','BTCMU','BTCXU','BTCUZ','BTCXM','EOS','LTC','ETH_HIST','BTCMU_HIST','BTCXU_HIST','BTCUZ_HIST','BTCXM_HIST','EOS_HIST','LTC_HIST','ETH_OFFSET','BTCMU_OFFSET','BTCXU_OFFSET','BTCUZ_OFFSET','BTCXM_OFFSET','EOS_OFFSET','LTC_OFFSET','ETH_HIST_OFFSET','BTCMU_HIST_OFFSET','BTCXU_HIST_OFFSET','BTCUZ_HIST_OFFSET','BTCXM_HIST_OFFSET','EOS_HIST_OFFSET','LTC_HIST_OFFSET'])
+            scp_file_to_remote(['ETH','BTCMU','BTCXU','BTCUZ','BTCXM','EOS','LTC','ETH_HIST','BTCMU_HIST','BTCXU_HIST','BTCUZ_HIST','BTCXM_HIST','EOS_HIST','LTC_HIST','ETH_OFFSET','BTCMU_OFFSET','BTCXU_OFFSET','BTCUZ_OFFSET','BTCXM_OFFSET','EOS_OFFSET','LTC_OFFSET','ETH_HIST_OFFSET','BTCMU_HIST_OFFSET','BTCXU_HIST_OFFSET','BTCUZ_HIST_OFFSET','BTCXM_HIST_OFFSET','EOS_HIST_OFFSET','LTC_HIST_OFFSET'])
             print(datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
-            time.sleep(10)
-            # time.sleep(60*60*2)
+            sleep_sec=0
+            out_while=False
+            while sleep_sec < 60*60*0.1:
+                time.sleep(10)
+                sleep_sec += 1
+                for symbol_pair in ["BTCUZ"]:
+                    new_offset = get_diff_offset_online(symbol_pair)
+                    new_profit = get_profit_range_online(symbol_pair)
+                    if new_offset != last_offset_dict[symbol_pair]:
+                        print(datetime.now().strftime("%Y-%m-%dT%H:%M:%S")+"-----[{SymbolPair}] offset change,from {LastOffset}-->{NewOffset},\nreplot!!!".format(SymbolPair=symbol_pair,LastOffset=last_offset_dict[symbol_pair],NewOffset=new_offset))
+                        out_while=True
+                    elif new_profit != last_profit_dict[symbol_pair]:
+                        print(datetime.now().strftime("%Y-%m-%dT%H:%M:%S")+"-----[{SymbolPair}] offset change,from {LastProfit}-->{NewProfit},\nreplot!!!".format(SymbolPair=symbol_pair,LastProfit=last_profit_dict[symbol_pair],NewProfit=new_profit))
+                        out_while=True
+                if out_while:
+                    break
         except Exception as e:
-            print(e)
+            print(traceback.format_exc())
             time.sleep(60*10)
             pass
     
