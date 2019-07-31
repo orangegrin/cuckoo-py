@@ -18,7 +18,6 @@ from matplotlib.lines import Line2D
 import pandas as pd
 from pandas.plotting import register_matplotlib_converters
 import numpy
-import redis
 import talib
 import requests
 import json
@@ -41,7 +40,7 @@ Session = sessionmaker(bind=engine, class_=SessionContextManager)
 Base.metadata.create_all(bind=engine)
 
 SYMBOL_MAP={
-    "bitmex":{"ETH":"ETHM19","EOS":"EOSM19","XRP":"XRPM19","LTC":"LTCM19","BTCM":"XBTM19","BTCU":"XBTU19","BTCZ":"XBTZ19","BTCX":"XBTUSD"},
+    "bitmex":{"ETH":"ETHU19","EOS":"EOSM19","XRP":"XRPM19","LTC":"LTCM19","BTCM":"XBTM19","BTCU":"XBTU19","BTCZ":"XBTZ19","BTCX":"XBTUSD"},
     "binance":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
     "gateio":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
     "okex":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
@@ -76,35 +75,43 @@ def self_reindex(bitmex_l,akey,binance_l,bkey):
 
 def self_reindex_sig(bitmex_l,key,start_date,end_date):
     bitmex_series = pd.Series([d[key] for d in bitmex_l], index=pd.to_datetime([d['timestamp'].replace(microsecond=0).astimezone(tzutc_8) for d in bitmex_l]))
-    df_reindexed_bitmex = bitmex_series.reindex(pd.date_range(start=start_date,end=end_date,freq='1S'))  
+    # print(bitmex_series)
+    df_reindexed_bitmex = bitmex_series.reindex(pd.date_range(start=start_date.astimezone(tzutc_8),end=end_date.astimezone(tzutc_8),freq='1S'),method='pad')  
     df_reindexed_bitmex = df_reindexed_bitmex.interpolate(method='nearest') 
     return df_reindexed_bitmex
 
-def query_symbol_datafram(session,exchange,key,symbol,start_date_str="20190409T00:00:00",end_data_str="20190409T00:00:00",RAW_VALUE=False):
-  
-    exchang_data_A = session.query(BKQuoteOrder).filter_by(exchange=exchange,symbol=SYMBOL_MAP[exchange][symbol]).filter(and_(BKQuoteOrder.timesymbol>start_date_str,BKQuoteOrder.timesymbol<end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all() 
+def query_symbol_datafram(session,exchange,key,symbol,start_date_str,end_data_str):
+    
+    exchang_data_A = session.query(BKQuoteOrder).filter_by(exchange=exchange,symbol=symbol).filter(and_(BKQuoteOrder.timesymbol>start_date_str,BKQuoteOrder.timesymbol<end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all() 
     
     exchang_data_A_l = [x.to_dict() for x in exchang_data_A]
-
+    print(symbol)
     print(len(exchang_data_A_l))
+    
     print("------------------")
     if ( exchang_data_A_l == [] ):
         print('\nNo data found in selected time range!!!\n')
         return None
-
-    start_date = datetime.strptime(start_date_str,'%Y%m%dT%H:%M:%S')
-    end_date = datetime.strptime(end_data_str,'%Y%m%dT%H:%M:%S')
+    # print(exchang_data_A_l[0])
+    start_date = datetime.strptime(start_date_str,'%Y-%m-%dT%H:%M:%S')
+    end_date = datetime.strptime(end_data_str,'%Y-%m-%dT%H:%M:%S')
 
     exchang_data_A0 = exchang_data_A_l[0]['timestamp'].replace(microsecond=0)
 
     if start_date<exchang_data_A0:
-        exchang_data_A_tmp = session.query(BKQuoteOrder).filter_by(exchange=exchange,symbol=SYMBOL_MAP[exchange][symbol]).filter(and_(BKQuoteOrder.timesymbol<=start_date_str)).order_by(BKQuoteOrder.timesymbol.desc()).limit(1).all()
+        exchang_data_A_tmp = session.query(BKQuoteOrder).filter_by(exchange=exchange,symbol=symbol).filter(and_(BKQuoteOrder.timesymbol<=start_date_str)).order_by(BKQuoteOrder.timesymbol.desc()).limit(1).all()
         tmp_item1 = exchang_data_A_tmp[0].to_dict()
         tmp_item1['timestamp'] = start_date
         exchang_data_A_l = [tmp_item1]+exchang_data_A_l
-    
+
+    if end_date>exchang_data_A0:
+        
+        tmp_item1 = dict(exchang_data_A_l[-1])
+        tmp_item1['timestamp'] = end_date
+        exchang_data_A_l.append(tmp_item1)
+
     print(len(exchang_data_A_l))
-    
+    # print(exchang_data_A_l[0])
     df_reindexed_exchang_data_A = self_reindex_sig(exchang_data_A_l,key,start_date,end_date)
     
     df_reindexed_exchang_data_A = df_reindexed_exchang_data_A.fillna(method='pad')
@@ -193,7 +200,7 @@ def get_EMAs(data_list, timeperiods):
         EMAs.append(talib.EMA(data_list, timeperiod=timeperiod))
     return EMAs
 
-def merge_cut_df(df_raw,df_new,num=1440*4):
+def merge_cut_df(df_raw,df_new,num=1440*12):
     tmp_d  = df_raw.to_dict()
     tmp_d.update(df_new.to_dict())
     tmp_keys = sorted(tmp_d.keys())[-num:]
@@ -208,14 +215,32 @@ def pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str,end_da
     f = None
     if SQL_DATA_CACHE.get(data_cache_key,None) is None:
         print(start_date_str)
-        f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str)
+        if symbol == 'ETHUU':
+            ethusd_f = query_symbol_datafram(session,exchangeA,akey,"ETHUSD",start_date_str=start_date_str,end_data_str=end_data_str)
+            ethu19_f = query_symbol_datafram(session,exchangeA,akey,"ETHU19",start_date_str=start_date_str,end_data_str=end_data_str)
+            btcz19_f = query_symbol_datafram(session,exchangeB,bkey,"XBTZ19",start_date_str=start_date_str,end_data_str=end_data_str)
+            if any([ethu19_f is None,ethusd_f is None,btcz19_f is None]):
+                print("some symbol not find data,return!!")
+                return None
+            f = (ethusd_f/ethu19_f)/btcz19_f-1
+        else:
+            f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str)
         if f is not None:
             f = f.resample('1min',closed='left',label='left').mean()
         SQL_DATA_CACHE[data_cache_key] = {'raw_data':f,'next_stat_ts':(datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:00")}
     else:
         start_date_str = SQL_DATA_CACHE[data_cache_key]['next_stat_ts'] 
         print(start_date_str)
-        f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str)
+        if symbol == 'ETHUU':
+            ethusd_f = query_symbol_datafram(session,exchangeA,akey,"ETHUSD",start_date_str=start_date_str,end_data_str=end_data_str)
+            ethu19_f = query_symbol_datafram(session,exchangeA,akey,"ETHU19",start_date_str=start_date_str,end_data_str=end_data_str)
+            btcz19_f = query_symbol_datafram(session,exchangeB,bkey,"XBTZ19",start_date_str=start_date_str,end_data_str=end_data_str)
+            if any([ethu19_f is None,ethusd_f is None,btcz19_f is None]):
+                print("some symbol not find data,return!!")
+                return None
+            f = (ethusd_f/ethu19_f)/btcz19_f-1
+        else:
+            f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str)
         if f is not None:
             f = f.resample('1min',closed='left',label='left').mean()
             SQL_DATA_CACHE[data_cache_key]['raw_data'] = merge_cut_df(SQL_DATA_CACHE[data_cache_key]['raw_data'],f)
@@ -411,7 +436,7 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset
     # for yval in [0.0,0.01,-0.01,0.02,-0.02,0.03,-0.03]:
     #     df_axes.axhline(y=yval,linestyle="--",color="black")
 
-    plt.title("{symbol}---|{EB}[{BK}]/{EA}[{AK}]-1|---point +/-0.003--offest[{OFFSET}]".format(symbol=symbol,EA=exchangeA,AK=akey,EB=exchangeB,BK=bkey,OFFSET=str(offset)))
+    plt.title("{symbol}---|{EB}[{BK}]/{EA}[{AK}]-1|---point +/-{PROFITRANGE}--offest[{OFFSET}]".format(symbol=symbol,EA=exchangeA,AK=akey,EB=exchangeB,BK=bkey,PROFITRANGE=str(profit_range),OFFSET=str(offset)))
     # mplcursors.cursor(fig)
     # plt.subplots_adjust(hspace=1)
     
@@ -475,7 +500,7 @@ def plot_hist(data_list,symbol,offset=0):
     print("save: "+dst_file)
     plt.close()
 
-def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="20190411 18:00:00",end_data_str=None,RAW_DATA=False,offset=0,profit_range=0.002):
+def plot_exchangeAB(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="2019-04-11T18:00:00",end_data_str=None,RAW_DATA=False,offset=0,profit_range=0.002):
     
     f = pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=start_date_str,end_data_str=end_data_str)
     # f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str=start_date_str,end_data_str=end_data_str)
@@ -586,17 +611,19 @@ def scp_file_to_remote(upfiles):
     ftp_client.close()
     ssh.close()
 
-def get_diff_offset_online(symbol_pair,api="http://127.0.0.1:8001/diff_offset"):
+def get_diff_offset_online(symbol_pair,api="http://raylee.5166.info:8001/diff_offset"):
     try:
         resp = requests.get(api,params={"symbol_pair":symbol_pair})
+        # print(resp.content)
         return json.loads(resp.content)["value"] 
     except Exception:
         print(traceback.format_exc())
         return 0
 
-def get_profit_range_online(symbol_pair,api="http://127.0.0.1:8001/profit_range"):
+def get_profit_range_online(symbol_pair,api="http://raylee.5166.info:8001/profit_range"):
     try:
         resp = requests.get(api,params={"symbol_pair":symbol_pair})
+        # print(resp.content)
         return json.loads(resp.content)["value"] 
     except Exception:
         print(traceback.format_exc())
@@ -610,18 +637,27 @@ if __name__ == "__main__":
     # print(len(ret))
     # get_trade_point_from_bitmex('ETHM19')
     last_profit_range = 0.002
+    last_profit_dict={}
+    last_offset_dict={}
     while True:
         try:
             with Session() as session:
-                Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=1,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
-                for symbol_pair in ["BTCUZ"]:
+                Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=12,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
+                for symbol_pair in ["ETHUU","BTCUZ"]:
                     offset = get_diff_offset_online(symbol_pair)
                     profit_range = get_profit_range_online(symbol_pair)
+                    print(offset,profit_range)
+                    
                     if profit_range<=0:
                         profit_range = last_profit_range
                     else:
                         last_profit_range = profit_range
-                    plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str=Start_date_str,offset=offset,profit_range=profit_range)
+                    
+                    last_offset_dict[symbol_pair]=offset
+                    last_profit_dict[symbol_pair]=profit_range
+                    plot_exchangeAB(session,"bitmex","bids","bitmex","bids",symbol_pair,start_date_str=Start_date_str,offset=offset,profit_range=profit_range)
+                    # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","ETHUU",start_date_str=Start_date_str,end_data_str="20190729T00:00:00",offset=offset,profit_range=profit_range)
+                    # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str=Start_date_str,offset=offset,profit_range=profit_range)
                 # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCUZ",start_date_str="2019-06-20T00:00:00")
                 # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCMU",start_date_str=Start_date_str)
                 # plot_exchangeAB(session,"bitmex","asks","binance","bids","ETH",start_date_str=Start_date_str)
@@ -629,12 +665,27 @@ if __name__ == "__main__":
                 # plot_exchangeAB(session,"bitmex","bids","bitmex","bids","BTCXU",start_date_str=Start_date_str)
                 # plot_exchangeAB(session,"bitmex","asks","binance","bids","EOS",start_date_str=Start_date_str)
                 # plot_exchangeAB(session,"bitmex","asks","binance","bids","LTC",start_date_str=Start_date_str)
-            # scp_file_to_remote(['ETH','BTCMU','BTCXU','BTCUZ','BTCXM','EOS','LTC','ETH_HIST','BTCMU_HIST','BTCXU_HIST','BTCUZ_HIST','BTCXM_HIST','EOS_HIST','LTC_HIST','ETH_OFFSET','BTCMU_OFFSET','BTCXU_OFFSET','BTCUZ_OFFSET','BTCXM_OFFSET','EOS_OFFSET','LTC_OFFSET','ETH_HIST_OFFSET','BTCMU_HIST_OFFSET','BTCXU_HIST_OFFSET','BTCUZ_HIST_OFFSET','BTCXM_HIST_OFFSET','EOS_HIST_OFFSET','LTC_HIST_OFFSET'])
+            scp_file_to_remote(['ETHUU','ETH','BTCMU','BTCXU','BTCUZ','BTCXM','EOS','LTC','ETHUU_HIST','ETH_HIST','BTCMU_HIST','BTCXU_HIST','BTCUZ_HIST','BTCXM_HIST','EOS_HIST','LTC_HIST','ETHUU_OFFSET','ETH_OFFSET','BTCMU_OFFSET','BTCXU_OFFSET','BTCUZ_OFFSET','BTCXM_OFFSET','EOS_OFFSET','LTC_OFFSET','ETHUU_HIST_OFFSET','ETH_HIST_OFFSET','BTCMU_HIST_OFFSET','BTCXU_HIST_OFFSET','BTCUZ_HIST_OFFSET','BTCXM_HIST_OFFSET','EOS_HIST_OFFSET','LTC_HIST_OFFSET'])
             print(datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
-            time.sleep(10)
-            # time.sleep(60*60*2)
+            sleep_sec=0
+            out_while=False
+            while sleep_sec < 60*60*0.1:
+                time.sleep(10)
+                sleep_sec += 1
+                for symbol_pair in ["BTCUZ"]:
+                    new_offset = get_diff_offset_online(symbol_pair)
+                    new_profit = get_profit_range_online(symbol_pair)
+                    if new_offset != last_offset_dict[symbol_pair]:
+                        print(datetime.now().strftime("%Y-%m-%dT%H:%M:%S")+"-----[{SymbolPair}] offset change,from {LastOffset}-->{NewOffset},\nreplot!!!".format(SymbolPair=symbol_pair,LastOffset=last_offset_dict[symbol_pair],NewOffset=new_offset))
+                        out_while=True
+                    elif new_profit != last_profit_dict[symbol_pair]:
+                        print(datetime.now().strftime("%Y-%m-%dT%H:%M:%S")+"-----[{SymbolPair}] offset change,from {LastProfit}-->{NewProfit},\nreplot!!!".format(SymbolPair=symbol_pair,LastProfit=last_profit_dict[symbol_pair],NewProfit=new_profit))
+                        out_while=True
+                if out_while:
+                    break
+            # time.sleep(10000)
         except Exception as e:
-            print(e)
+            print(traceback.format_exc())
             time.sleep(60*10)
             pass
     
