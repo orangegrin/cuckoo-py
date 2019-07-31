@@ -80,7 +80,8 @@ while True:
     if position_bal != []:
         for pos in position_bal:
             if pos['symbol'] == 'XBTUSD':
-                xbtusd_margin = pos['realisedPnl']+pos['unrealisedPnl']
+                # xbtusd_margin = pos['realisedPnl']+pos['unrealisedPnl']
+                xbtusd_margin = pos['unrealisedPnl']
                 xbtusd_margin = xbtusd_margin/100000000
                 break
 
