@@ -102,12 +102,40 @@ class TradeHistory(Base):
     extratext = Column(String(128))
     transactTime = Column(TIMESTAMP(timezone=False), nullable=False)
     timestamp = Column(TIMESTAMP(timezone=False), nullable=False)
+
+class OGUser(Base):
+    __tablename__ = 'oguser'
+
+    id = Column(Integer, primary_key=True,unique=True, autoincrement='auto')
+    username = Column(String(48), unique=True,nullable=False)
+    passtoken = Column(String(128),nullable=False)
+    extratext = Column(String(128))
+    timestamp = Column(TIMESTAMP(timezone=False), nullable=False)
+
+# {"id":"2","programID":60002,"deltaDiff":-0.001,"leverage":3.5,"openPositionBuyA":1,"openPositionSellA":1,"profitRange":{"s":0.001,"e":0.0035},"remark":"ETH正","createTime":"2019-07-01T04:00:00.000Z"}
+class ArbitrageProcess(Base):
+    __tablename__ = 'arbitrageprocess'
+
+    id = Column(Integer, primary_key=True,unique=True, autoincrement='auto')
+    programID = Column(String(48), unique=True)
+    deltaDiff = Column(Float, nullable=False)
+    leverage = Column(Float, nullable=False)
+    openPositionBuyA = Column(Integer,nullable=False)
+    openPositionSellA = Column(Integer, nullable=False)
+    profitRangeS = Column(Float, nullable=False)
+    profitRangeE = Column(Float, nullable=False)
+    status = Column(Integer,nullable=False,default=1)
+    remark = Column(String(128))
+    createTime = Column(TIMESTAMP(timezone=True),nullable=False, server_default=func.now())
     
-#     def to_dict(self):
-#         properties = ['exchangepair', 'symbol','timestamp','value']
-#         dict_t = {prop: getattr(self, prop, None) for prop in properties}
-#         dict_t['timestamp'] = int(time.mktime(dict_t['timestamp'].timetuple()))
-#         return dict_t
+    def to_dict(self):
+        properties = ["id","programID","deltaDiff","leverage","openPositionBuyA","openPositionSellA","profitRangeS","profitRangeE","remark","createTime"]
+        pre_dict = {prop: getattr(self, prop, None) for prop in properties}
+        pre_dict["profitRange"] = {"s":pre_dict["profitRangeS"],"e":pre_dict["profitRangeE"]}
+        pre_dict["createTime"] = pre_dict["createTime"].strftime("%Y-%m-%dT%H:%M:%S")
+        pre_dict.pop("profitRangeS")
+        pre_dict.pop("profitRangeE")
+        return pre_dict
 
 class SessionContextManager(Session):
 

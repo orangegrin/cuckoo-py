@@ -26,6 +26,9 @@ sanic = "*"
 tensorflow = "*"
 paramiko = "*"
 redis = "*"
+pyotp = "*"
+sanic-jwt = "*"
+sanic-cors = "*"
 
 [requires]
 python_version = "3.7"
