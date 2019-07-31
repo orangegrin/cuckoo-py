@@ -7,7 +7,7 @@
 </head>
 <body>
   <div id="app">
-        <el-tabs v-model="onShowTabsName" type="card" >
+        <el-tabs v-model="onShowTabsName" type="card" @tab-click="getCurrentTabVals">
                 <el-tab-pane
                 :key="item.name"
                 v-for="(item, index) in allTabs"
@@ -94,6 +94,15 @@
                         'src_img_offset':'./figure/BTCUZ_OFFSET.png',
                         'src_img_hist_offset':'./figure/BTCUZ_HIST_OFFSET.png'
                         }
+                },{
+                title: 'ETHUU',
+                name: 'ETHUU',
+                content: {
+                        'src_img':'./figure/ETHUU.png',
+                        'src_img_hist':'./figure/ETHUU_HIST.png',
+                        'src_img_offset':'./figure/ETHUU_OFFSET.png',
+                        'src_img_hist_offset':'./figure/ETHUU_HIST_OFFSET.png'
+                        }
                 }],
                 newOffset:"",
                 currentOffset:"0.0",
@@ -149,6 +158,10 @@
                 .catch(function (error) { // 请求失败处理
                         console.log(error);
                 });
+        },
+        getCurrentTabVals(){
+                this.getDiffOffset(this.onShowTabsName);
+                this.getProfitRange(this.onShowTabsName);
         }     
       },
       mounted() {

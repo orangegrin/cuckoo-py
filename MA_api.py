@@ -172,6 +172,23 @@ def get_funding_rate(request):
         print(traceback.format_exc())
     
     return response.json(ret_data)
-    
+
+@app.get('/diff')
+def get_maavg_value_route(request):
+
+    print(request.raw_args)
+    ret_data = {"status":0,"msg":"param error!"}
+    if request.raw_args.get("exchangeA",None) and  request.raw_args.get("exchangeB",None) and request.raw_args.get("symbol",None):
+        with Session() as session:
+            ret = fetch_latest_diff_data(session,request.raw_args["exchangeA"],request.raw_args["exchangeB"],request.raw_args["symbol"])
+            if ret:
+                ret_data["data"]=ret
+                ret_data["status"] = 1
+                ret_data["msg"] = "success!"
+            else:
+                ret_data["status"] = 2
+                ret_data["msg"] = "query fail,check param!"
+    return response.json(ret_data)
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8000, workers=1)
