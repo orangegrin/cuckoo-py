@@ -209,6 +209,8 @@ def merge_cut_df(df_raw,df_new,num=1440*12):
 
 def pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str,end_data_str):
     
+    if end_data_str is None:
+        end_data_str = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%dT%H:%M:%S") 
     global SQL_DATA_CACHE
     data_cache_key = '_'.join([exchangeA,akey,exchangeB,bkey,symbol])
     print("Plot {} start:".format(symbol))

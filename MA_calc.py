@@ -5,7 +5,7 @@ from decimal import Decimal
 from db.model import Base, SessionContextManager,BKQuoteOrder,LPriceDiff
 import pandas as pd
 import numpy as np
-from plot_figure import gen_plot_datafram,get_MAs
+from plot_figure import gen_plot_datafram,get_MAs,pre_get_f
 SYMBOL_MAP={
     "bitmex":{"ETH":"ETHM19","EOS":"EOSM19","XRP":"XRPM19","LTC":"LTCM19"},
     "binance":{"ETH":"ETH/BTC","EOS":"EOS/BTC","XRP":"XRP/BTC","LTC":"LTC/BTC"},
@@ -157,7 +157,8 @@ if __name__ == "__main__":
             calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCXM',latest_days=4)
             calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCMU',latest_days=4)
             calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCXU',latest_days=4)
-            
+            calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','ETHUU',latest_days=4)
+
             calc_latest_diff_data(session,'bitmex','asks','binance','bids','ETH',latest_days=4)
             calc_latest_diff_data(session,'bitmex','asks','binance','bids','EOS',latest_days=4)
             calc_latest_diff_data(session,'bitmex','asks','binance','bids','LTC',latest_days=4)
