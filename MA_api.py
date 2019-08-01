@@ -29,8 +29,8 @@ class User:
     def get_opt_pass(self):
         if self.totp is None:
             self.totp = pyotp.TOTP(self.OTPToken)
-        # return self.totp.now()
-        return "123456"
+        return self.totp.now()
+        # return "123456"
 
     def to_dict(self):
         return {"user_id": self.user_id, "username": self.username}
@@ -342,7 +342,7 @@ def delete_arbitrage(request):
         print(new_process_data)
         new_process_data["status"] = 0
         pid = new_process_data.pop("id",None)
-        session.query(ArbitrageProcess).filter_by(id=pid).update(new_process_data)
+        session.query(ArbitrageProcess).filter_by(id=pid).delete()
     return response.json(default_ret)
 
 # users = [
@@ -368,4 +368,4 @@ async def print_on_request(request):
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8001, workers=1)
+    app.run(host="0.0.0.0", port=8006, workers=1)
