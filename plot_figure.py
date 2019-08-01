@@ -213,7 +213,7 @@ def pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str,end_da
         end_data_str = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%dT%H:%M:%S") 
     global SQL_DATA_CACHE
     data_cache_key = '_'.join([exchangeA,akey,exchangeB,bkey,symbol])
-    print("Plot {} start:".format(symbol))
+    print("Get df of {} start:".format(symbol))
     f = None
     if SQL_DATA_CACHE.get(data_cache_key,None) is None:
         print(start_date_str)
