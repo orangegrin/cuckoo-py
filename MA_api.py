@@ -291,7 +291,7 @@ def get_arbitrage_info(request):
             if request.raw_args.get("exchangeA",None) and  request.raw_args.get("exchangeB",None):
                 ma_avg = fetch_latest_diff_data(session,request.raw_args["exchangeA"],request.raw_args["exchangeB"],symbol)
                 if ma_avg:
-                    default_ret["maAvg"]=ma_avg
+                    default_ret["maAvg"]=ma_avg['value']
         return response.json(default_ret)
     except:
         print(traceback.format_exc())
