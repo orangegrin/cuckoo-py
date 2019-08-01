@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 import traceback,time
 from sanic import Sanic
 from sanic import response
+from sanic.exceptions import InvalidUsage
 import aiohttp
 import json
 from MA_calc import fetch_latest_diff_data,tv_data_fetch
@@ -28,8 +29,8 @@ class User:
     def get_opt_pass(self):
         if self.totp is None:
             self.totp = pyotp.TOTP(self.OTPToken)
-        return self.totp.now()
-        # return "123456"
+        # return self.totp.now()
+        return "123456"
 
     def to_dict(self):
         return {"user_id": self.user_id, "username": self.username}
@@ -247,7 +248,7 @@ def get_arbitrage_list(request):
     default_ret = {"data":[],"code":0,"succ":True}
     with request.app.Session() as session:
         list_array = session.query(ArbitrageProcess).filter_by(status=1).all()
-        default_ret["data"] = [sa.to_dict() for sa in list_array]
+        default_ret["data"] = [sa.to_dict(prlist=True) for sa in list_array]
     return response.json(default_ret)
 
 @app.route('/arbitrage/process',methods=['GET','OPTIONS'])
@@ -261,28 +262,36 @@ def get_arbitrage_info(request):
             "leverage": 3.5,
             "openPositionBuyA": 0,#0:false, 1:true
             "openPositionSellA": 1,
-            "profitRange ":{"s":0.02,"e":0.04}
+            "profitRange ":[0.002,0.0045],
+            "maAvg":0.002,
             "remark ":"BTCUZ ",#备注标识，默认创建时的值为symbol
             "createTime ":"2019 - 07 - 31 T16: 57: 37 "
         }
     }
     '''
-    default_ret = {"programID":None, "deltaDiff":-0.001, "leverage":3.5, "openPositionBuyA":1, "openPositionSellA":1, "profitRangeS":0.002,"profitRangeE":0.0045 ,"remark":None}
+    default_ret = {"programID":None, "deltaDiff":-0.001, "leverage":3.5, "openPositionBuyA":1, "openPositionSellA":1, "profitRange":[0.002,0.0045] ,"remark":None}
     try:
+        
         with request.app.Session() as session:
+            
             req_process_data = request.args
             print(req_process_data)
             programID = req_process_data['programID'][0]
             symbol = req_process_data['symbol'][0]
-            process_obj = session.query(ArbitrageProcess).filter_by(status=1).filter_by(programID=programID).first()
+            process_obj = session.query(ArbitrageProcess).filter_by(status=1).filter_by(programID=programID).filter_by(symbol=symbol).first()
             if process_obj is None:
                 default_ret["programID"] = programID
                 default_ret["remark"] = symbol
+                default_ret["symbol"] = symbol
                 new_obj = ArbitrageProcess(**default_ret)
                 session.add(new_obj)
                 process_obj = session.query(ArbitrageProcess).filter_by(status=1).filter_by(programID=programID).first()
 
             default_ret= process_obj.to_dict()
+            if request.raw_args.get("exchangeA",None) and  request.raw_args.get("exchangeB",None):
+                ma_avg = fetch_latest_diff_data(session,request.raw_args["exchangeA"],request.raw_args["exchangeB"],symbol)
+                if ma_avg:
+                    default_ret["maAvg"]=ma_avg
         return response.json(default_ret)
     except:
         print(traceback.format_exc())
@@ -295,9 +304,12 @@ def get_arbitrage_list(request):
     with request.app.Session() as session:
         new_process_data = request.json
         print(new_process_data)
-        new_process_data["profitRangeS"] = new_process_data["profitRange"]['s']
-        new_process_data["profitRangeE"] = new_process_data["profitRange"]['e']
-        new_process_data.pop("profitRange")
+        try:
+            new_process_data["profitRange"] = list(map(float,new_process_data["profitRange"].split(':')))
+            new_process_data["profitRange"].sort()
+        except:
+            print(traceback.format_exc())
+            raise InvalidUsage("profitRange is invalid!!")
         new_process_data.pop("id",None)
         new_obj = ArbitrageProcess(**new_process_data)
         session.add(new_obj)
@@ -310,9 +322,13 @@ def update_arbitrage(request):
     with request.app.Session() as session:
         new_process_data = request.json
         print(new_process_data)
-        new_process_data["profitRangeS"] = new_process_data["profitRange"]['s']
-        new_process_data["profitRangeE"] = new_process_data["profitRange"]['e']
-        new_process_data.pop("profitRange")
+        try:
+            prlist = new_process_data["profitRange"].split(':')
+            new_process_data["profitRange"] = list(map(float,prlist))
+            new_process_data["profitRange"].sort()
+        except:
+            print(traceback.format_exc())
+            raise InvalidUsage("profitRange is invalid!!")
         pid = new_process_data.pop("id",None)
         session.query(ArbitrageProcess).filter_by(id=pid).update(new_process_data)
     return response.json(default_ret)

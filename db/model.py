@@ -118,23 +118,22 @@ class ArbitrageProcess(Base):
 
     id = Column(Integer, primary_key=True,unique=True, autoincrement='auto')
     programID = Column(String(48), unique=True)
+    symbol = Column(String(16), nullable=False)
     deltaDiff = Column(Float, nullable=False)
     leverage = Column(Float, nullable=False)
     openPositionBuyA = Column(Integer,nullable=False)
     openPositionSellA = Column(Integer, nullable=False)
-    profitRangeS = Column(Float, nullable=False)
-    profitRangeE = Column(Float, nullable=False)
+    profitRange = Column(ARRAY(Float), nullable=False)
     status = Column(Integer,nullable=False,default=1)
     remark = Column(String(128))
     createTime = Column(TIMESTAMP(timezone=True),nullable=False, server_default=func.now())
     
-    def to_dict(self):
-        properties = ["id","programID","deltaDiff","leverage","openPositionBuyA","openPositionSellA","profitRangeS","profitRangeE","remark","createTime"]
+    def to_dict(self,prlist=False):
+        properties = ["id","programID","deltaDiff","leverage","openPositionBuyA","openPositionSellA","profitRange","remark","createTime"]
         pre_dict = {prop: getattr(self, prop, None) for prop in properties}
-        pre_dict["profitRange"] = {"s":pre_dict["profitRangeS"],"e":pre_dict["profitRangeE"]}
+        if prlist:
+            pre_dict["profitRange"] = ':'.join(map(str,pre_dict["profitRange"]))
         pre_dict["createTime"] = pre_dict["createTime"].strftime("%Y-%m-%dT%H:%M:%S")
-        pre_dict.pop("profitRangeS")
-        pre_dict.pop("profitRangeE")
         return pre_dict
 
 class SessionContextManager(Session):
