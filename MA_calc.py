@@ -42,6 +42,7 @@ def merge_cut_df(df_raw,df_new,num=1440*4):
 
 def calc_latest_diff_data(session,exchangeA,akey,exchangeB,bkey,symbol,latest_days=4):
     
+    end_data_str = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%dT%H:%M:%S")
     global SQL_DATA_CACHE
     start_date_str = ''
     data_cache_key = '_'.join([exchangeA,akey,exchangeB,bkey,symbol])
@@ -50,13 +51,13 @@ def calc_latest_diff_data(session,exchangeA,akey,exchangeB,bkey,symbol,latest_da
     if SQL_DATA_CACHE.get(data_cache_key,None) is None:
         start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=latest_days,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
         print(start_date_str)
-        f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str)
+        f = pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str,end_data_str)
         f = f.resample('1min',closed='left',label='left').mean()
         SQL_DATA_CACHE[data_cache_key] = {'raw_data':f,'next_stat_ts':(datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:00")}
     else:
         start_date_str = SQL_DATA_CACHE[data_cache_key]['next_stat_ts'] 
         print(start_date_str)
-        f = gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str)
+        f = pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str,end_data_str)
         f = f.resample('1min',closed='left',label='left').mean()
         SQL_DATA_CACHE[data_cache_key]['next_stat_ts'] = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:00")
         SQL_DATA_CACHE[data_cache_key]['raw_data'] = merge_cut_df(SQL_DATA_CACHE[data_cache_key]['raw_data'],f)
@@ -154,14 +155,14 @@ if __name__ == "__main__":
         start_tick = time.time()
         with Session() as session:
 
-            calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCXM',latest_days=4)
-            calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCMU',latest_days=4)
-            calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCXU',latest_days=4)
+            # calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCXM',latest_days=4)
+            # calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCMU',latest_days=4)
+            # calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCUZ',latest_days=4)
             calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','ETHUU',latest_days=4)
 
-            calc_latest_diff_data(session,'bitmex','asks','binance','bids','ETH',latest_days=4)
-            calc_latest_diff_data(session,'bitmex','asks','binance','bids','EOS',latest_days=4)
-            calc_latest_diff_data(session,'bitmex','asks','binance','bids','LTC',latest_days=4)
+            # calc_latest_diff_data(session,'bitmex','asks','binance','bids','ETH',latest_days=4)
+            # calc_latest_diff_data(session,'bitmex','asks','binance','bids','EOS',latest_days=4)
+            # calc_latest_diff_data(session,'bitmex','asks','binance','bids','LTC',latest_days=4)
             # calc_latest_diff_data(session,'bitmex','asks','binance','bids','XRP',latest_days=4)
             
             # f = tv_data_fetch(session,'bitmex','asks','binance','bids','ETH','1s',1555372800,1555459200)
