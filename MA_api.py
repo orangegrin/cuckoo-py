@@ -284,6 +284,7 @@ def get_arbitrage_info(request):
                 default_ret["remark"] = symbol
                 default_ret["symbol"] = symbol
                 new_obj = ArbitrageProcess(**default_ret)
+                check_data_validation(new_process_data)
                 session.add(new_obj)
                 process_obj = session.query(ArbitrageProcess).filter_by(status=1).filter_by(programID=programID).first()
 
@@ -296,6 +297,14 @@ def get_arbitrage_info(request):
     except:
         print(traceback.format_exc())
         return response.json({})
+
+def check_data_validation(data_dict):
+    
+    leverage,deltaDiff= float(data_dict['leverage']),float(data_dict['deltaDiff'])
+    if leverage > 7 or leverage <1:
+        raise InvalidUsage("leverage val must betwween 1-7")
+    if deltaDiff > 0.01 or deltaDiff < -0.01:
+        raise InvalidUsage("deltaDiff val must betwween +/-0.01")
 
 @app.route('/arbitrage/add',methods=['GET','POST','OPTIONS'])
 @protected()
@@ -311,6 +320,7 @@ def get_arbitrage_list(request):
             print(traceback.format_exc())
             raise InvalidUsage("profitRange is invalid!!")
         new_process_data.pop("id",None)
+        check_data_validation(new_process_data)
         new_obj = ArbitrageProcess(**new_process_data)
         session.add(new_obj)
     return response.json(default_ret)
@@ -330,6 +340,7 @@ def update_arbitrage(request):
             print(traceback.format_exc())
             raise InvalidUsage("profitRange is invalid!!")
         pid = new_process_data.pop("id",None)
+        check_data_validation(new_process_data)
         session.query(ArbitrageProcess).filter_by(id=pid).update(new_process_data)
     return response.json(default_ret)
 
