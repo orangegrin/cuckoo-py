@@ -218,9 +218,9 @@ def pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str,end_da
     if SQL_DATA_CACHE.get(data_cache_key,None) is None:
         print(start_date_str)
         if symbol == 'ETHUU':
-            ethusd_f = query_symbol_datafram(session,exchangeA,akey,"ETHUSD",start_date_str=start_date_str,end_data_str=end_data_str)
-            ethu19_f = query_symbol_datafram(session,exchangeA,akey,"ETHU19",start_date_str=start_date_str,end_data_str=end_data_str)
-            btcz19_f = query_symbol_datafram(session,exchangeB,bkey,"XBTZ19",start_date_str=start_date_str,end_data_str=end_data_str)
+            ethusd_f = query_symbol_datafram(session,exchangeA,"bids","ETHUSD",start_date_str=start_date_str,end_data_str=end_data_str)
+            ethu19_f = query_symbol_datafram(session,exchangeA,"bids","ETHU19",start_date_str=start_date_str,end_data_str=end_data_str)
+            btcz19_f = query_symbol_datafram(session,exchangeB,"asks","XBTUSD",start_date_str=start_date_str,end_data_str=end_data_str)
             if any([ethu19_f is None,ethusd_f is None,btcz19_f is None]):
                 print("some symbol not find data,return!!")
                 return None
@@ -234,9 +234,9 @@ def pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str,end_da
         start_date_str = SQL_DATA_CACHE[data_cache_key]['next_stat_ts'] 
         print(start_date_str)
         if symbol == 'ETHUU':
-            ethusd_f = query_symbol_datafram(session,exchangeA,akey,"ETHUSD",start_date_str=start_date_str,end_data_str=end_data_str)
-            ethu19_f = query_symbol_datafram(session,exchangeA,akey,"ETHU19",start_date_str=start_date_str,end_data_str=end_data_str)
-            btcz19_f = query_symbol_datafram(session,exchangeB,bkey,"XBTZ19",start_date_str=start_date_str,end_data_str=end_data_str)
+            ethusd_f = query_symbol_datafram(session,exchangeA,"bids","ETHUSD",start_date_str=start_date_str,end_data_str=end_data_str)
+            ethu19_f = query_symbol_datafram(session,exchangeA,"bids","ETHU19",start_date_str=start_date_str,end_data_str=end_data_str)
+            btcz19_f = query_symbol_datafram(session,exchangeB,"asks","XBTUSD",start_date_str=start_date_str,end_data_str=end_data_str)
             if any([ethu19_f is None,ethusd_f is None,btcz19_f is None]):
                 print("some symbol not find data,return!!")
                 return None
@@ -293,13 +293,15 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset
         plot_vals = [] 
         for idx in range(0,len(vals)) :
             v = vals[idx]
-            if v > 0.03 or v < -0.03:
-                if idx==0:
-                    plot_vals.append(0)
-                else:
-                    plot_vals.append(plot_vals[idx-1])
-            else:
-                plot_vals.append(v)
+            # if symbol != 'ETHUU':
+            # if v > 0.03 or v < -0.03:
+            #     if idx==0:
+            #         plot_vals.append(0)
+            #     else:
+            #         plot_vals.append(plot_vals[idx-1])
+            # else:
+            #     plot_vals.append(v)
+            plot_vals.append(v)
         # add offset
         MA_AVG = [av+offset for av in MA_AVG]
         # min_based_df=pd.DataFrame({'Diff':vals,'MA1':MAs[0],'MA2':MAs[1],'MA3':MAs[2],'MA4':MAs[3],'MA_AVG':MA_AVG},index=index)
@@ -632,8 +634,7 @@ def get_profit_range_online(symbol_pair,api="http://raylee.5166.info:8001/profit
         return 0
 
 
-if __name__ == "__main__":
-    
+def main():   
     # get_binance_kline_data('ETHBTC',start_time=1557569880000)
     # ret = get_bitmex_kline_data('ETHM19',start_time=datetime(2019,5,11,0,0))
     # print(len(ret))
@@ -674,7 +675,7 @@ if __name__ == "__main__":
             while sleep_sec < 60*60*0.1:
                 time.sleep(10)
                 sleep_sec += 1
-                for symbol_pair in ["BTCUZ"]:
+                for symbol_pair in ["BTCUZ","ETHUU"]:
                     new_offset = get_diff_offset_online(symbol_pair)
                     new_profit = get_profit_range_online(symbol_pair)
                     if new_offset != last_offset_dict[symbol_pair]:
@@ -690,4 +691,20 @@ if __name__ == "__main__":
             print(traceback.format_exc())
             time.sleep(60*10)
             pass
-    
+
+if __name__ == "__main__":
+    main()
+
+    # with Session() as session:
+    #     Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=24,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
+    #     for symbol_pair in ["ETHUU"]:
+    #        offset = get_diff_offset_online(symbol_pair)
+    #         profit_range = get_profit_range_online(symbol_pair)
+    #         print(offset,profit_range)
+            
+    #         if profit_range<=0:
+    #            profit_range = last_profit_range
+    #         else:
+    #             last_profit_range = profit_range
+            
+    #         plot_exchangeAB(session,"bitmex","bids","bitmex","bids",symbol_pair,start_date_str=Start_date_str,offset=offset,profit_range=profit_range)
