@@ -92,10 +92,11 @@ def query_avg_cell(session,exchange,key,symbol,start_date_str,end_date_str):
 def query_symbol_datafram(session,exchange,key,symbol,start_date_str,end_data_str):
     
     
-    print("start get "+symbol)
+    print("start get: ",symbol)
     end_date = datetime.strptime(end_data_str,'%Y-%m-%dT%H:%M:%S')+timedelta(minutes=1)
     end_date_str = end_date.strftime("%Y-%m-%dT%H:%M:%S")
-    dr = [ ts.strftime("%Y-%m-%dT%H:%M") for ts in pd.date_range(start=start_date_str, end=end_date_str, closed=None,freq='1min')]
+    date_objs = pd.date_range(start=start_date_str, end=end_date_str, closed=None,freq='1min')
+    dr = [ ts.strftime("%Y-%m-%dT%H:%M") for ts in date_objs]
     # .strftime("%Y-%m-%dT%H:%M:%S")
     prices = []
     start_date_str = dr[1]
@@ -119,44 +120,44 @@ def query_symbol_datafram(session,exchange,key,symbol,start_date_str,end_data_st
         # print(exchang_data_A)
         # print(type(exchang_data_A))
     print(time.time() - start_ts)
-    return pd.DataFrame(prices,columns=['vals'], index=)
+    return pd.Series(prices, index=[d.astimezone(tzutc_8) for d in date_objs[:-1]])
     # print(prices)
-    time.sleep(6000)
-    exchang_data_A = session.query(BKQuoteOrder).filter_by(exchange=exchange,symbol=symbol).filter(and_(BKQuoteOrder.timesymbol>start_date_str,BKQuoteOrder.timesymbol<end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all() 
+    # time.sleep(6000)
+    # exchang_data_A = session.query(BKQuoteOrder).filter_by(exchange=exchange,symbol=symbol).filter(and_(BKQuoteOrder.timesymbol>start_date_str,BKQuoteOrder.timesymbol<end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all() 
     
-    exchang_data_A_l = [x.to_dict() for x in exchang_data_A]
-    print(symbol)
-    print(len(exchang_data_A_l))
+    # exchang_data_A_l = [x.to_dict() for x in exchang_data_A]
+    # print(symbol)
+    # print(len(exchang_data_A_l))
     
-    print("------------------")
-    if ( exchang_data_A_l == [] ):
-        print('\nNo data found in selected time range!!!\n')
-        return None
-    # print(exchang_data_A_l[0])
-    start_date = datetime.strptime(start_date_str,'%Y-%m-%dT%H:%M:%S')
-    end_date = datetime.strptime(end_data_str,'%Y-%m-%dT%H:%M:%S')
+    # print("------------------")
+    # if ( exchang_data_A_l == [] ):
+    #     print('\nNo data found in selected time range!!!\n')
+    #     return None
+    # # print(exchang_data_A_l[0])
+    # start_date = datetime.strptime(start_date_str,'%Y-%m-%dT%H:%M:%S')
+    # end_date = datetime.strptime(end_data_str,'%Y-%m-%dT%H:%M:%S')
 
-    exchang_data_A0 = exchang_data_A_l[0]['timestamp'].replace(microsecond=0)
+    # exchang_data_A0 = exchang_data_A_l[0]['timestamp'].replace(microsecond=0)
 
-    if start_date<exchang_data_A0:
-        exchang_data_A_tmp = session.query(BKQuoteOrder).filter_by(exchange=exchange,symbol=symbol).filter(and_(BKQuoteOrder.timesymbol<=start_date_str)).order_by(BKQuoteOrder.timesymbol.desc()).limit(1).all()
-        tmp_item1 = exchang_data_A_tmp[0].to_dict()
-        tmp_item1['timestamp'] = start_date
-        exchang_data_A_l = [tmp_item1]+exchang_data_A_l
+    # if start_date<exchang_data_A0:
+    #     exchang_data_A_tmp = session.query(BKQuoteOrder).filter_by(exchange=exchange,symbol=symbol).filter(and_(BKQuoteOrder.timesymbol<=start_date_str)).order_by(BKQuoteOrder.timesymbol.desc()).limit(1).all()
+    #     tmp_item1 = exchang_data_A_tmp[0].to_dict()
+    #     tmp_item1['timestamp'] = start_date
+    #     exchang_data_A_l = [tmp_item1]+exchang_data_A_l
 
-    if end_date>exchang_data_A0:
+    # if end_date>exchang_data_A0:
         
-        tmp_item1 = dict(exchang_data_A_l[-1])
-        tmp_item1['timestamp'] = end_date
-        exchang_data_A_l.append(tmp_item1)
+    #     tmp_item1 = dict(exchang_data_A_l[-1])
+    #     tmp_item1['timestamp'] = end_date
+    #     exchang_data_A_l.append(tmp_item1)
 
-    print(len(exchang_data_A_l))
-    # print(exchang_data_A_l[0])
-    df_reindexed_exchang_data_A = self_reindex_sig(exchang_data_A_l,key,start_date,end_date)
+    # print(len(exchang_data_A_l))
+    # # print(exchang_data_A_l[0])
+    # df_reindexed_exchang_data_A = self_reindex_sig(exchang_data_A_l,key,start_date,end_date)
     
-    df_reindexed_exchang_data_A = df_reindexed_exchang_data_A.fillna(method='pad')
+    # df_reindexed_exchang_data_A = df_reindexed_exchang_data_A.fillna(method='pad')
     
-    return df_reindexed_exchang_data_A
+    # return df_reindexed_exchang_data_A
 
 def gen_plot_datafram(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str="20190409T00:00:00",end_data_str=None,RAW_VALUE=False):
     # exchangeA,exchangeB "bitmex","binance"
