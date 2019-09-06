@@ -81,6 +81,8 @@ def calc_latest_diff_data(session,exchangeA,akey,exchangeB,bkey,symbol,latest_da
     min_based_df.fillna(value=0)
     print(len(data_list))
     res = list(min_based_df.tail(1).to_dict()["MA_AVG"].items())
+    res_diff = list(min_based_df.tail(1).to_dict()["Diff"].items())
+    print(res_diff)
     print(res)
     timestamp,ma_avg_value = res[0][0],res[0][1]
     if not np.isnan(ma_avg_value):

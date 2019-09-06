@@ -9,6 +9,7 @@ import ccxt.async_support as ccxt  # noqa: E402
 from sqlalchemy.engine.url import URL
 from sqlalchemy import create_engine,and_
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import func
 from db.model import Base, SessionContextManager,BKQuoteOrder,IQuoteOrder,TradeHistory
 import traceback,time
 import mplcursors
@@ -80,8 +81,47 @@ def self_reindex_sig(bitmex_l,key,start_date,end_date):
     df_reindexed_bitmex = df_reindexed_bitmex.interpolate(method='nearest') 
     return df_reindexed_bitmex
 
+def query_avg_cell(session,exchange,key,symbol,start_date_str,end_date_str):
+    exchang_data_A = None
+    if key == "bids":
+        exchang_data_A = session.query(func.avg(BKQuoteOrder.bids).label("avg_bids")).filter_by(exchange=exchange,symbol=symbol).filter(and_(BKQuoteOrder.timesymbol>=start_date_str,BKQuoteOrder.timesymbol<end_date_str)).all()[0][0]
+    elif key == "asks":
+        exchang_data_A = session.query(func.avg(BKQuoteOrder.asks).label("avg_asks")).filter_by(exchange=exchange,symbol=symbol).filter(and_(BKQuoteOrder.timesymbol>=start_date_str,BKQuoteOrder.timesymbol<end_date_str)).all()[0][0]
+    return exchang_data_A
+
 def query_symbol_datafram(session,exchange,key,symbol,start_date_str,end_data_str):
     
+    
+    print("start get "+symbol)
+    end_date = datetime.strptime(end_data_str,'%Y-%m-%dT%H:%M:%S')+timedelta(minutes=1)
+    end_date_str = end_date.strftime("%Y-%m-%dT%H:%M:%S")
+    dr = [ ts.strftime("%Y-%m-%dT%H:%M") for ts in pd.date_range(start=start_date_str, end=end_date_str, closed=None,freq='1min')]
+    # .strftime("%Y-%m-%dT%H:%M:%S")
+    prices = []
+    start_date_str = dr[1]
+    for idx in range(10):
+        start_date_str_pre = datetime.strptime(start_date_str,'%Y-%m-%dT%H:%M:%S')+timedelta(minutes=-1)
+        exchang_data_A = query_avg_cell(session,exchange,key,symbol,start_date_str_pre,start_date_str)
+        if exchang_data_A is not None:
+            prices.append(exchang_data_A)
+            break
+        start_date_str = start_date_str_pre
+    if prices == []:
+        print("Can not find start Data at ",dr[0])
+    start_ts = time.time()
+    print(start_ts)
+    for idx in range(1,len(dr)-1):
+        exchang_data_A = query_avg_cell(session,exchange,key,symbol,dr[idx],dr[idx+1])
+        if exchang_data_A is not None:
+            prices.append(exchang_data_A)
+        else:
+            prices.append(prices[idx-1])
+        # print(exchang_data_A)
+        # print(type(exchang_data_A))
+    print(time.time() - start_ts)
+    return pd.DataFrame(prices,columns=['vals'], index=)
+    # print(prices)
+    time.sleep(6000)
     exchang_data_A = session.query(BKQuoteOrder).filter_by(exchange=exchange,symbol=symbol).filter(and_(BKQuoteOrder.timesymbol>start_date_str,BKQuoteOrder.timesymbol<end_data_str)).order_by(BKQuoteOrder.timesymbol.asc()).all() 
     
     exchang_data_A_l = [x.to_dict() for x in exchang_data_A]
@@ -603,7 +643,7 @@ def get_trade_point_from_csv(csv = 'test\TradeHistory(symbol=EOSM19)2019-4-17.cs
         ret.append({"timestamp":datetimes,'value':df['price'][idx],'side':df['side'][idx]})
     return ret
 
-def scp_file_to_remote(upfiles):
+def scp_file_to_remote(upfiles,subdir="figure"):
     import paramiko
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -611,7 +651,8 @@ def scp_file_to_remote(upfiles):
     ssh.connect('150.109.52.225', 22, 'ray',key_filename='./figure/id_rsa')
 
     ftp_client=ssh.open_sftp()
-    [ftp_client.put('./figure/{fig_name}.png'.format(fig_name=img_name),'/home/ray/web/figure/{fig_name}.png'.format(fig_name=img_name)) for img_name in upfiles if os.path.exists('./figure/{fig_name}.png'.format(fig_name=img_name))]
+    print("Open ssh sftp!")
+    [ftp_client.put('./figure/{fig_name}.png'.format(fig_name=img_name),'/home/ray/web/{subdir}/{fig_name}.png'.format(subdir=subdir,fig_name=img_name)) for img_name in upfiles if os.path.exists('./figure/{fig_name}.png'.format(fig_name=img_name))]
     ftp_client.close()
     ssh.close()
 
@@ -693,18 +734,14 @@ def main():
             pass
 
 if __name__ == "__main__":
-    main()
+    # main()
 
-    # with Session() as session:
-    #     Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=24,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
-    #     for symbol_pair in ["ETHUU"]:
-    #        offset = get_diff_offset_online(symbol_pair)
-    #         profit_range = get_profit_range_online(symbol_pair)
-    #         print(offset,profit_range)
+    with Session() as session:
+        Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=38,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
+        for symbol_pair in ["ETHUU"]:
+            offset = get_diff_offset_online(symbol_pair)
+            profit_range = get_profit_range_online(symbol_pair)
+            print(offset,profit_range)
             
-    #         if profit_range<=0:
-    #            profit_range = last_profit_range
-    #         else:
-    #             last_profit_range = profit_range
-            
-    #         plot_exchangeAB(session,"bitmex","bids","bitmex","bids",symbol_pair,start_date_str=Start_date_str,offset=offset,profit_range=profit_range)
+            plot_exchangeAB(session,"bitmex","bids","bitmex","bids",symbol_pair,start_date_str="2019-08-01T00:00:00",end_data_str="2019-09-01T00:00:00",offset=offset,profit_range=profit_range)
+    # scp_file_to_remote(["BTCMU","BTCMU_OFFSET"],subdir="tt7")
