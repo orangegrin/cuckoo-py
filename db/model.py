@@ -129,7 +129,7 @@ class ArbitrageProcess(Base):
     createTime = Column(TIMESTAMP(timezone=True),nullable=False, server_default=func.now())
     
     def to_dict(self,prlist=False):
-        properties = ["id","programID","deltaDiff","leverage","openPositionBuyA","openPositionSellA","profitRange","remark","createTime"]
+        properties = ["id","programID","deltaDiff","symbol","leverage","openPositionBuyA","openPositionSellA","profitRange","remark","createTime"]
         pre_dict = {prop: getattr(self, prop, None) for prop in properties}
         if prlist:
             pre_dict["profitRange"] = ':'.join(map(str,pre_dict["profitRange"]))
