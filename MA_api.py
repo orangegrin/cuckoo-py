@@ -308,7 +308,7 @@ def check_data_validation(data_dict):
 
 @app.route('/arbitrage/add',methods=['GET','POST','OPTIONS'])
 @protected()
-def get_arbitrage_list(request):
+def get_arbitrage_add(request):
     default_ret = {"data":[],"code":0,"succ":True}
     with request.app.Session() as session:
         new_process_data = request.json

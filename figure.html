@@ -1,173 +1,190 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <meta charset="UTF-8">
-  <!-- import CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+        <meta charset="UTF-8">
+        <!-- import CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
 </head>
+
 <body>
-  <div id="app">
-        <el-tabs v-model="onShowTabsName" type="card" @tab-click="getCurrentTabVals">
-                <el-tab-pane
-                :key="item.name"
-                v-for="(item, index) in allTabs"
-                :label="item.title"
-                :name="item.name"
-                >
-                <div class="demo-image__placeholder">
-                        <div class="block">
-                                <el-image :src="item.content.src_img"></el-image>
-                        </div> 
-                </div>
-                <div class="demo-image__placeholder">
-                        <div class="block">
-                                <el-image :src="item.content.src_img_hist"></el-image>
-                        </div> 
-                </div>
+        <div id="app">
+                <el-tabs v-model="onShowTabsName" type="card" @tab-click="getCurrentTabVals">
+                        <el-tab-pane :key="item.name" v-for="(item, index) in allTabs" :label="item.title" :name="item.name">
+                                <div class="demo-image__placeholder">
+                                        <div class="block">
+                                                <el-image :src="item.content.src_img"></el-image>
+                                        </div>
+                                </div>
+                                <div class="demo-image__placeholder">
+                                        <div class="block">
+                                                <el-image :src="item.content.src_img_hist"></el-image>
+                                        </div>
+                                </div>
 
-                <div>
-                        <ul style="list-style-type:none;float:left">
-                        <li><span>Current diff offset : {{ currentOffset }}</span></li>
-                        <li><el-input placeholder="input new offset" v-model="newOffset" clearable ></el-input>
-                        <li></li><el-button size="small" type="primary" @click="offsetDialogVisible = true" :loading.sync="buttomDisable">Set Offset!</el-button></li>
-                        </ul>
+                                <div>
+                                        <ul style="list-style-type:none;float:left">
+                                                <li><span>Current diff offset : {{ currentOffset }}</span></li>
+                                                <li>
+                                                        <el-input placeholder="input new offset" v-model="newOffset"
+                                                                clearable></el-input>
+                                                <li></li>
+                                                <el-button size="small" type="primary" @click="offsetDialogVisible = true"
+                                                        :loading.sync="buttomDisable">Set Offset!</el-button>
+                                                </li>
+                                        </ul>
 
-                        <el-dialog title="Notice" :visible.sync="offsetDialogVisible" width="30%">
-                        <span>Besure to set diff offset to {{ newOffset }}</span>
-                        <span slot="footer" class="dialog-footer">
-                        <el-button @click="offsetDialogVisible = false">Cancle</el-button>
-                        <el-button type="primary" @click="setDiffOffset(newOffset,onShowTabsName);offsetDialogVisible = false" >Apply</el-button>
-                        </span>
-                        </el-dialog>
-                </div>
+                                        <el-dialog title="Notice" :visible.sync="offsetDialogVisible" width="30%">
+                                                <span>Besure to set diff offset to {{ newOffset }}</span>
+                                                <span slot="footer" class="dialog-footer">
+                                                        <el-button @click="offsetDialogVisible = false">Cancle</el-button>
+                                                        <el-button type="primary" @click="setDiffOffset(newOffset,onShowTabsName);offsetDialogVisible = false">Apply</el-button>
+                                                </span>
+                                        </el-dialog>
+                                </div>
 
-                <div>
-                        <ul style="list-style-type:none;float:left">
-                        <li><span>Current profit range +/- {{ currentProfitRange }}</span></li>
-                        <li><el-input placeholder="input new profit range +/-:" v-model="newProfitRange" clearable ></el-input>
-                        <li></li><el-button size="small" type="primary" @click="profitDialogVisible = true" :loading.sync="buttomDisable">Set profit range!</el-button></li>
-                        </ul>
+                                <div>
+                                        <ul style="list-style-type:none;float:left">
+                                                <li><span>Current profit range +/- {{ currentProfitRange }}</span></li>
+                                                <li>
+                                                        <el-input placeholder="input new profit range +/-:" v-model="newProfitRange"
+                                                                clearable></el-input>
+                                                <li></li>
+                                                <el-button size="small" type="primary" @click="profitDialogVisible = true"
+                                                        :loading.sync="buttomDisable">Set profit range!</el-button>
+                                                </li>
+                                        </ul>
 
-                        <el-dialog title="Notice" :visible.sync="profitDialogVisible" width="30%">
-                        <span>Besure to set profit range to +/-{{ newProfitRange }}</span>
-                        <span slot="footer" class="dialog-footer">
-                        <el-button @click="profitDialogVisible = false">Cancle</el-button>
-                        <el-button type="primary" @click="setProfitRange(newProfitRange,onShowTabsName);profitDialogVisible = false" >Apply</el-button>
-                        </span>
-                        </el-dialog>
-                </div>
+                                        <el-dialog title="Notice" :visible.sync="profitDialogVisible" width="30%">
+                                                <span>Besure to set profit range to +/-{{ newProfitRange }}</span>
+                                                <span slot="footer" class="dialog-footer">
+                                                        <el-button @click="profitDialogVisible = false">Cancle</el-button>
+                                                        <el-button type="primary" @click="setProfitRange(newProfitRange,onShowTabsName);profitDialogVisible = false">Apply</el-button>
+                                                </span>
+                                        </el-dialog>
+                                </div>
 
-                <div class="demo-image__placeholder">
-                        <div class="block">
-                                <el-image :src="item.content.src_img_offset"></el-image>
-                        </div> 
-                </div>
-                <div class="demo-image__placeholder">
-                        <div class="block">
-                                <el-image :src="item.content.src_img_hist_offset"></el-image>
-                        </div> 
-                </div>
-                </el-tab-pane>
-        </el-tabs>
-    </div>
+                                <div class="demo-image__placeholder">
+                                        <div class="block">
+                                                <el-image :src="item.content.src_img_offset"></el-image>
+                                        </div>
+                                </div>
+                                <div class="demo-image__placeholder">
+                                        <div class="block">
+                                                <el-image :src="item.content.src_img_hist_offset"></el-image>
+                                        </div>
+                                </div>
+                        </el-tab-pane>
+                </el-tabs>
+        </div>
 </body>
-  <!-- import Vue before Element -->
-  <script src="https://unpkg.com/vue/dist/vue.js"></script>
-  <script src="https://cdn.staticfile.org/axios/0.18.0/axios.min.js"></script>
-  <!-- import JavaScript -->
-  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
-  <script>
-    new Vue({
-      el: '#app',
-      data: function() {
-        return { 
-                offsetDialogVisible: false,
-                profitDialogVisible: false,
-                buttomDisable:false,
-                onShowTabsName: 'BTCUZ',
-                allTabs: [{
-                title: 'BTCUZ',
-                name: 'BTCUZ',
-                content: {
-                        'src_img':'./figure/BTCUZ.png',
-                        'src_img_hist':'./figure/BTCUZ_HIST.png',
-                        'src_img_offset':'./figure/BTCUZ_OFFSET.png',
-                        'src_img_hist_offset':'./figure/BTCUZ_HIST_OFFSET.png'
+<!-- import Vue before Element -->
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://cdn.staticfile.org/axios/0.18.0/axios.min.js"></script>
+<!-- import JavaScript -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script>
+        new Vue({
+                el: '#app',
+                data: function () {
+                        return {
+                                offsetDialogVisible: false,
+                                profitDialogVisible: false,
+                                buttomDisable: false,
+                                onShowTabsName: 'BTCUZ',
+                                allTabs: [{
+                                        title: 'BTCZH',
+                                        name: 'BTCZH',
+                                        content: {
+                                                'src_img': './figure/BTCZH.png',
+                                                'src_img_hist': './figure/BTCZH_HIST.png',
+                                                'src_img_offset': './figure/BTCZH_OFFSET.png',
+                                                'src_img_hist_offset': './figure/BTCZH_HIST_OFFSET.png'
+                                        }
+                                }, {
+                                        title: 'BTCUZ',
+                                        name: 'BTCUZ',
+                                        content: {
+                                                'src_img': './figure/BTCUZ.png',
+                                                'src_img_hist': './figure/BTCUZ_HIST.png',
+                                                'src_img_offset': './figure/BTCUZ_OFFSET.png',
+                                                'src_img_hist_offset': './figure/BTCUZ_HIST_OFFSET.png'
+                                        }
+                                }, {
+                                        title: 'ETHUU',
+                                        name: 'ETHUU',
+                                        content: {
+                                                'src_img': './figure/ETHUU.png',
+                                                'src_img_hist': './figure/ETHUU_HIST.png',
+                                                'src_img_offset': './figure/ETHUU_OFFSET.png',
+                                                'src_img_hist_offset': './figure/ETHUU_HIST_OFFSET.png'
+                                        }
+                                }],
+                                newOffset: "",
+                                currentOffset: "0.0",
+                                newProfitRange: "",
+                                currentProfitRange: "0.0"
                         }
-                },{
-                title: 'ETHUU',
-                name: 'ETHUU',
-                content: {
-                        'src_img':'./figure/ETHUU.png',
-                        'src_img_hist':'./figure/ETHUU_HIST.png',
-                        'src_img_offset':'./figure/ETHUU_OFFSET.png',
-                        'src_img_hist_offset':'./figure/ETHUU_HIST_OFFSET.png'
+                },
+                methods: {
+                        setDiffOffset(anewOffset, onShowTabsName) {
+                                console.log(anewOffset)
+                                console.log(onShowTabsName)
+                                axios.post('http://raylee.5166.info:8001/diff_offset', { "symbol_pair": onShowTabsName, "value": anewOffset })
+                                        .then(response => (this.currentOffset = anewOffset))
+                                        .catch(function (error) { // 请求失败处理
+                                                console.log(error);
+                                        });
+                                this.offsetDialogVisible = false
+                                this.buttomDisable = true
+                                setTimeout(() => {
+                                        if (this.buttomDisable) {
+                                                this.buttomDisable = false
+                                        };
+                                        location.reload(true)
+                                }, 5 * 60 * 1000);
+                        },
+                        getDiffOffset(onShowTabsName) {
+                                axios.get('http://raylee.5166.info:8001/diff_offset?symbol_pair=' + onShowTabsName)
+                                        .then(response => (this.currentOffset = response.data.value))
+                                        .catch(function (error) { // 请求失败处理
+                                                console.log(error);
+                                        });
+                        },
+                        setProfitRange(anewProfitRange, onShowTabsName) {
+                                console.log(anewProfitRange)
+                                console.log(onShowTabsName)
+                                axios.post('http://raylee.5166.info:8001/profit_range', { "symbol_pair": onShowTabsName, "value": anewProfitRange })
+                                        .then(response => (this.currentProfitRange = anewProfitRange))
+                                        .catch(function (error) { // 请求失败处理
+                                                console.log(error);
+                                        });
+                                this.profitDialogVisible = false
+                                this.buttomDisable = true
+                                setTimeout(() => {
+                                        if (this.buttomDisable) {
+                                                this.buttomDisable = false
+                                        };
+                                        location.reload(true)
+                                }, 5 * 60 * 1000);
+                        },
+                        getProfitRange(onShowTabsName) {
+                                axios.get('http://raylee.5166.info:8001/profit_range?symbol_pair=' + onShowTabsName)
+                                        .then(response => (this.currentProfitRange = response.data.value))
+                                        .catch(function (error) { // 请求失败处理
+                                                console.log(error);
+                                        });
+                        },
+                        getCurrentTabVals() {
+                                this.getDiffOffset(this.onShowTabsName);
+                                this.getProfitRange(this.onShowTabsName);
                         }
-                }],
-                newOffset:"",
-                currentOffset:"0.0",
-                newProfitRange:"",
-                currentProfitRange:"0.0"
-         }
-      },
-      methods:{
-        setDiffOffset(anewOffset,onShowTabsName){
-            console.log(anewOffset)
-            console.log(onShowTabsName)
-            axios.post('http://raylee.5166.info:8001/diff_offset',{"symbol_pair":onShowTabsName,"value":anewOffset})
-                .then(response => (this.currentOffset=anewOffset))
-                .catch(function (error) { // 请求失败处理
-                        console.log(error);
-                });
-            this.offsetDialogVisible = false
-            this.buttomDisable = true
-            setTimeout(() => {
-                if (this.buttomDisable) {
-                        this.buttomDisable=false
-                };
-                location.reload(true)
-                }, 5*60*1000);
-        } ,
-        getDiffOffset(onShowTabsName){
-                axios.get('http://raylee.5166.info:8001/diff_offset?symbol_pair='+onShowTabsName)
-                .then(response => (this.currentOffset=response.data.value))
-                .catch(function (error) { // 请求失败处理
-                        console.log(error);
-                });
-        },
-        setProfitRange(anewProfitRange,onShowTabsName){
-            console.log(anewProfitRange)
-            console.log(onShowTabsName)
-            axios.post('http://raylee.5166.info:8001/profit_range',{"symbol_pair":onShowTabsName,"value":anewProfitRange})
-                .then(response => (this.currentProfitRange=anewProfitRange))
-                .catch(function (error) { // 请求失败处理
-                        console.log(error);
-                });
-            this.profitDialogVisible = false
-            this.buttomDisable = true
-            setTimeout(() => {
-                if (this.buttomDisable) {
-                        this.buttomDisable=false
-                };
-                location.reload(true)
-                }, 5*60*1000);
-        } ,
-        getProfitRange(onShowTabsName){
-                axios.get('http://raylee.5166.info:8001/profit_range?symbol_pair='+onShowTabsName)
-                .then(response => (this.currentProfitRange=response.data.value))
-                .catch(function (error) { // 请求失败处理
-                        console.log(error);
-                });
-        },
-        getCurrentTabVals(){
-                this.getDiffOffset(this.onShowTabsName);
-                this.getProfitRange(this.onShowTabsName);
-        }     
-      },
-      mounted() {
-        this.getDiffOffset(this.onShowTabsName);
-        this.getProfitRange(this.onShowTabsName);
-      }
-    })
-  </script>
+                },
+                mounted() {
+                        this.getDiffOffset(this.onShowTabsName);
+                        this.getProfitRange(this.onShowTabsName);
+                }
+        })
+</script>
+
 </html>
