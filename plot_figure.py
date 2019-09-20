@@ -228,7 +228,7 @@ def pre_get_f(session,exchangeA,akey,exchangeB,bkey,symbol,start_date_str,end_da
     global SQL_DATA_CACHE
     data_cache_key = '_'.join([exchangeA,akey,exchangeB,bkey,symbol])
     print("Get df of {} start:".format(symbol))
-    print(start_date_str,'-',end_date_str)
+    print(start_date_str,'-----',end_date_str)
     f = None
     if SQL_DATA_CACHE.get(data_cache_key,None) is None:
         print(start_date_str)
@@ -330,7 +330,8 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset
         min_based_df.fillna(value=0)
         print(len(data_list))
         print([len(i) for i in MAs])
-        
+        # min_based_df.to_csv("./BTCUZ.csv")
+        # print("save csv success!")
         if df_axes:
             df_axes = min_based_df.plot(figsize=(16, 9),ax=df_axes)
         elif raw_f is not None:
@@ -355,7 +356,6 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset
 
     maxid = f.idxmax()
     minid = f.idxmin()
-    print(maxid,minid)
     print(index[0],index[-1])
 
     
@@ -404,9 +404,9 @@ def plot_figure(session,f,exchangeA,akey,exchangeB,bkey,symbol,raw_f=None,offset
                     if vals[idx] > MA_AVG[idx-1] or  vals[idx] < MA_AVG[idx-1] :
                         tmp_v = vals[idx] - (MA_AVG[idx-1]+0.0005)
                         hist_data.append(tmp_v)  
-        # if hist_data:
-        #     plot_hist(hist_data,symbol,offset=offset)     
-        #     plt.figure(2)       
+        if hist_data:
+            plot_hist(hist_data,symbol,offset=offset)     
+            plt.figure(2)       
         for i in up_marker:
             plt.scatter(i[0],i[1],s=40,c="red",marker="p")
         for i in down_marker:
@@ -631,7 +631,7 @@ def scp_file_to_remote(upfiles,subdir="figure"):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     # ssh.connect('198.13.38.21', 22, 'ray','yqll125321,.')
-    ssh.connect('150.109.52.225', 22, 'ray',key_filename='./figure/id_rsa')
+    ssh.connect('raylee.5166.info', 22, 'ray',key_filename='./figure/id_rsa')
 
     ftp_client=ssh.open_sftp()
     print("Open ssh sftp!")
@@ -669,6 +669,7 @@ def main():
     while True:
         try:
             with Session() as session:
+                # Start_date_str = (datetime.now()-timedelta(days=12,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
                 Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=12,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
                 for symbol_pair in [ "BTCZH", "BTCUZ","ETHUU" ]:
                     offset = get_diff_offset_online(symbol_pair)
@@ -717,14 +718,14 @@ def main():
             pass
 
 if __name__ == "__main__":
-    main()
+    # main()
 
-    # with Session() as session:
-    #     Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=38,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
-    #     for symbol_pair in ["BTCUZ"]:
-    #         offset = get_diff_offset_online(symbol_pair)
-    #         profit_range = get_profit_range_online(symbol_pair)
-    #         print(offset,profit_range)
+    with Session() as session:
+        Start_date_str = (datetime.now().astimezone(timezone(timedelta(hours=0)))-timedelta(days=38,hours=12)).strftime("%Y-%m-%dT%H:%M:00") 
+        for symbol_pair in ["BTCUZ"]:
+            offset = get_diff_offset_online(symbol_pair)
+            profit_range = get_profit_range_online(symbol_pair)
+            print(offset,profit_range)
             
-    #         plot_exchangeAB(session,"bitmex","bids","bitmex","bids",symbol_pair,start_date_str="2019-06-22T00:00:00",end_date_str="2019-09-16T00:00:00",offset=offset,profit_range=profit_range)
+            plot_exchangeAB(session,"bitmex","bids","bitmex","bids",symbol_pair,start_date_str="2019-06-22T00:00:00",end_date_str="2019-09-16T00:00:00",offset=offset,profit_range=profit_range)
     # scp_file_to_remote(["BTCUZ","BTCUZ_OFFSET"],subdir="tt7")

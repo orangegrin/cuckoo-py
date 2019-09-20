@@ -159,6 +159,7 @@ if __name__ == "__main__":
 
             # calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCXM',latest_days=4)
             # calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCMU',latest_days=4)
+            calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCZH',latest_days=4)
             calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','BTCUZ',latest_days=4)
             calc_latest_diff_data(session,'bitmex','asks','bitmex','asks','ETHUU',latest_days=4)
 
